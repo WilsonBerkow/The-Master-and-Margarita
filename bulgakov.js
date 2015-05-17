@@ -411,16 +411,14 @@
                     render.button(ctx, this.x, this.y, this.width, this.height, this.text);
                 },
                 coversPoint: function (x, y) {
-                    console.log("Ranges to test:\n  " + this.x + " <= " + x + " <= " + (this.x + this.width) + "\nand\n  " +
-                                                        this.x + " <= " + y + " <= " + (this.y + this.height));
                     return testRange(this.x, x, this.x + this.width) &&
                            testRange(this.y, y, this.y + this.height);
                 }
             };
             return function (x, y, width, height, text) {
                 var btn = makeObject(proto, {
-                    x: x, // O ES6, so powerfully you beckon to me...
-                    y: y, // But we are kept apart, by those oldies on XP.
+                    x: x, // O ES6, how you're sweat, syntax sugar beckons to me...
+                    y: y, // Alas, our love is forbidden, by those oldies on XP.
                     width: width,
                     height: height,
                     text: text,
@@ -447,7 +445,6 @@
             };
             jQuery(document).on("mousedown.mainMenu", function (event) {
                 if (playBtn.coversPoint(event.pageX, event.pageY)) {
-                    console.log("in first if");
                     playBtn.isDown = true;
                 }
                 if (storyBtn.coversPoint(event.pageX, event.pageY)) {
@@ -682,6 +679,5 @@
         }());
         return {render: render, play: play};
     }());
-    //headsGame.play(function () {alert("Horray!"); }, function () {alert("Oh noes!"); });
     mainMenu.run(ctx);
 }());
