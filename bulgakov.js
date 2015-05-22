@@ -12,12 +12,43 @@
         });
         return o;
     };
-    var eventX = function (jqevent) {
-        return jqevent.pageX || jqevent.originalEvent.touches[0].pageX;
-    };
-    var eventY = function (jqevent) {
-        return jqevent.pageY || jqevent.originalEvent.touches[0].pageY;
-    };
+    var calcTouchPos = (function () {
+        var pageScaleFactor = 1,
+            moduleOffsetX = 0,
+            windowDims = {
+                "width": window.innerWidth || document.documentElement.clientWidth, // The defaulting expression (.documentElement....) is for IE
+                "height": window.innerHeight || document.documentElement.clientHeight
+            },
+            htmlModule = document.getElementById("container"),
+            resize = function () { // This zooms the page so that the Firecyclist rectangle (initially always (576/2) by (1024/2) in dimensions), fits to the page.
+                var scaleX = windowDims.width / canvasWidth,
+                    scaleY = windowDims.height / canvasHeight,
+                    unfitAxis;
+                pageScaleFactor = Math.min(scaleX, scaleY);
+                unfitAxis = pageScaleFactor === scaleX ? "y" : "x";
+                document.body.setAttribute("style", [ // Using document.body.style[property] didn't work, but just using setAttribute is fine here as this is the only style that will ever be applied.
+                    "-moz-transform-origin: 0 0",
+                    "-moz-transform: scale(" + pageScaleFactor + ")",
+                    "-webkit-transform-origin: 0 0",
+                    "-webkit-transform: scale(" + pageScaleFactor + ")",
+                    "-ms-transform-origin: 0 0",
+                    "-ms-transform: scale(" + pageScaleFactor + ")"
+                ].join("; "));
+                if (unfitAxis === "x") {
+                    moduleOffsetX = ((windowDims.width - canvasWidth * pageScaleFactor) / 2) / pageScaleFactor; // The last division, by pageScaleFactor, is there because the zoom done above will automatically scale this whole expression/offest by pageScaleFactor, so the division undoes that.
+                    htmlModule.setAttribute("style", "position: fixed; left: " + Math.floor(moduleOffsetX) + "px;");
+                }
+            };
+        resize();
+        return function (event) {
+            return {
+                "x": (typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX) / pageScaleFactor - moduleOffsetX,
+                "y": (typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY) / pageScaleFactor
+            };
+        };
+    }());
+    var eventX = function (event) { return calcTouchPos(event).x; };
+    var eventY = function (event) { return calcTouchPos(event).y; };
     var square = function (x) { return x * x; };
     var dist = function (x0, y0, x1, y1) {
         return Math.sqrt(square(x1 - x0) + square(y1 - y0));
@@ -477,8 +508,9 @@
                 if (playBtn.coversPoint(x, y)) {
                     cleanUp();
                     // Quick and hacky (for demo), sorry world:
-                    headsGame.play(ctx, function () { jQuery(document).off(); jQuery("canvas").remove(); jQuery("body").prepend("<canvas id='game' width='576' height='1024'/>"); againagain(); },
-                                        function () {alert("You win!");});
+                    var playAgain = function () { headsGame.play(reset, playAgain); }
+                    var reset = function () { alert("You win!"); playAgain(); };
+                    headsGame.play(reset, playAgain);
                 }
                 if (storyBtn.coversPoint(x, y)) {
                     // TODO: IMPLEMENT STORY PAGE
