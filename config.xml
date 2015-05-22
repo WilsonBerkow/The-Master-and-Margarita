@@ -13,4 +13,5 @@
     <preference name="Fullscreen" value="true" />
     <preference name="Orientation" value="landscape" />
     <preference name="DisallowOverscroll" value="true"/>
+    <icon src="icon.png" />
 </widget>
