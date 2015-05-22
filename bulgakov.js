@@ -1,4 +1,4 @@
-(function () {
+(function againagain() {
     'use strict';
     var canvas = $('#game')[0],
         ctx = canvas.getContext('2d'),
@@ -11,6 +11,12 @@
             o[prop] = props[prop];
         });
         return o;
+    };
+    var eventX = function (jqevent) {
+        return jqevent.pageX || jqevent.originalEvent.touches[0].pageX;
+    };
+    var eventY = function (jqevent) {
+        return jqevent.pageY || jqevent.originalEvent.touches[0].pageY;
     };
     var square = function (x) { return x * x; };
     var dist = function (x0, y0, x1, y1) {
@@ -80,8 +86,8 @@
     };
     var genericRender = {
         stageWithCurtains: function (ctx) {
-            var shadeColor = "#034";//"#404";
-            var lightColor = "#067";//"#707";
+            var shadeColor = "#404";//"#034";
+            var lightColor = "#707";//"#067";
             var heights = [canvasHeight * 0.45, canvasHeight * 0.45 + 20], i, h; // Heights of the curtain bottoms
             ctx.fillStyle = "navy"; // For the wall
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -305,8 +311,8 @@
         }
     };
     var mainMenu = (function () {
-        var titleClr0 = "#505";
-        var titleClr1 = "#202"; // Or, "#ddd";
+        var titleClr0 = "#500";//"#505";
+        var titleClr1 = "#200";//"#202"; // Or, "#ddd";
         var wolandFaceChars = {
             isFace: true,
             width: 180,
@@ -362,6 +368,15 @@
                 // FACE:
                 ctx.strokeStyle = "black";
                 people.render.face(ctx, wolandFaceChars, cx, cy);
+                // HAT:
+                ctx.beginPath();
+                ctx.arc(cx, cy, faceWRad, -11 / 12 * Math.PI, -1 / 12 * Math.PI);
+                ctx.fillStyle = "#444";
+                ctx.fill();
+                ctx.fillStyle = "#333";
+                ctx.fillRect(cx - faceWRad * 1.1, cy - 35, faceWRad * 2.2, 14);
+                ctx.fillStyle = "#555";
+                ctx.fillRect(cx - faceWRad * 0.9, cy - 49, faceWRad * 1.8, 14);
             },
             title: (function () {
                 var doWords = function (drawer) {
@@ -443,24 +458,29 @@
                 clearInterval(intervalId);
                 jQuery(document).off(".mainMenu");
             };
-            jQuery(document).on("mousedown.mainMenu", function (event) {
-                if (playBtn.coversPoint(event.pageX, event.pageY)) {
+            jQuery(document).on("touchstart.mainMenu mousedown.mainMenu", function (event) {
+                var x = eventX(event), y = eventY(event);
+                if (playBtn.coversPoint(x, y)) {
                     playBtn.isDown = true;
                 }
-                if (storyBtn.coversPoint(event.pageX, event.pageY)) {
+                if (storyBtn.coversPoint(x, y)) {
                     storyBtn.isDown = true;
                 }
             });
-            jQuery(document).on("mouseup.mainMenu", function (event) {
+            jQuery(document).on("touchend.mainMenu mouseup.mainMenu", function (event) {
                 playBtn.isDown = false;
                 storyBtn.isDown = false;
             });
-            jQuery(document).on("click.mainMenu", function (event) {
-                if (playBtn.coversPoint(event.pageX, event.pageY)) {
+            jQuery(document).on("tap.mainMenu click.mainMenu", function (event) {
+                var x = eventX(event), y = eventY(event);
+                console.log(event);
+                if (playBtn.coversPoint(x, y)) {
                     cleanUp();
-                    headsGame.play(ctx, function () {}, function () {});
+                    // Quick and hacky (for demo), sorry world:
+                    headsGame.play(ctx, function () { jQuery(document).off(); jQuery("canvas").remove(); jQuery("body").prepend("<canvas id='game' width='576' height='1024'/>"); againagain(); },
+                                        function () {alert("You win!");});
                 }
-                if (storyBtn.coversPoint(event.pageX, event.pageY)) {
+                if (storyBtn.coversPoint(x, y)) {
                     // TODO: IMPLEMENT STORY PAGE
                 }
             });
@@ -630,17 +650,18 @@
                     }
                 }
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery(document).on("mousedown", function (event) {
-                    var i, head;
+                jQuery(document).on("touchstart mousedown", function (event) {
+                    var i, head, x = eventX(event), y = eventY(event);
+                    console.log(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
-                        if (head.coversPoint(event.pageX, event.pageY)) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
+                        if (head.coversPoint(x, y)) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
                             head.dragging = true;
                             return;
                         }
                     }
                 });
-                jQuery(document).on("mouseup", function () {
+                jQuery(document).on("touchend mouseup", function () {
                     var i, head;
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -650,13 +671,13 @@
                         }
                     }
                 });
-                jQuery(document).on("mousemove", function (event) {
-                    var i, head;
+                jQuery(document).on("touchmove mousemove", function (event) {
+                    var i, head, x = eventX(event), y = eventY(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
                         if (head.dragging) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
-                            head.x = event.pageX;
-                            head.y = event.pageY;
+                            head.x = x;
+                            head.y = y;
                             if (head.atTarget()) {
                                 head.handleReachTarget();
                             }
@@ -677,7 +698,17 @@
                 };
             };
         }());
-        return {render: render, play: play};
+        return {render: render, play: play, gameId: "heads"};
+    }());
+    var minigames = (function () {
+        var games = [headsGame];
+        var launch = function (ctx) {
+            var gamesCompleted = [];
+        };
+        return {
+            games: games,
+            launch: launch
+        };
     }());
     mainMenu.run(ctx);
 }());
