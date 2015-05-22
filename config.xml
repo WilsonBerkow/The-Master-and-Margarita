@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Early edition of this, primarily rushed for a demo -->
+<widget id="com.wilsonberkow.www" version="0.0.1">
+    <name>Margarita</name>
+    <description>
+        Thwart Woland in this game of The Master and Margarita!
+    </description>
+    <author email="wilsonberkow@gmail.com">
+        Wilson Berkow
+    </author>
+    <content src="index.html" />
+    <access origin="*" />
+    <preference name="Fullscreen" value="true" />
+    <preference name="Orientation" value="landscape" />
+    <preference name="DisallowOverscroll" value="true"/>
+</widget>
