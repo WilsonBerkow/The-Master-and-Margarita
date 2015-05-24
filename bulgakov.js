@@ -41,10 +41,8 @@
             };
         resize();
         return function (event) {
-            return {
-                "x": (typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX) / pageScaleFactor - moduleOffsetX,
-                "y": (typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY) / pageScaleFactor
-            };
+            return Pt((typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX) / pageScaleFactor - moduleOffsetX,
+                      (typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY) / pageScaleFactor);
         };
     }());
     var eventX = function (event) { return calcTouchPos(event).x; };
@@ -73,8 +71,17 @@
         };
     };
     var invoke = callWith();
+    var constFn = function (x) { return function () { return x; }};
     var testRange = function (min, x, max) {
         return min <= x && x <= max;
+    };
+    var closedInterval = function (min, max) {
+        var interval = function (x) {
+            return testRange(min, x, max);
+        };
+        interval.min = min;
+        interval.max = max;
+        return inverval;
     };
     var randElem = function (arr) {
         var i = Math.floor(Math.random() * arr.length);
@@ -343,7 +350,7 @@
     };
     var mainMenu = (function () {
         var titleClr0 = "#500";//"#505";
-        var titleClr1 = "#200";//"#202"; // Or, "#ddd";
+        var titleClr1 = "#d99";//"#a6a";//"#900";//"#200";//"#202"; // Or, "#ddd";
         var wolandFaceChars = {
             isFace: true,
             width: 180,
@@ -412,6 +419,7 @@
             title: (function () {
                 var doWords = function (drawer) {
                     ctx.lineWidth = 3;
+                    ctx.textAlign = "left";
                     ctx.font = "210px BlessedDay";
                     drawer("The", canvasWidth * 0.0, canvasHeight * 0.275);
                     drawer("Master", canvasWidth * 0.3, canvasHeight * 0.315);
@@ -504,13 +512,9 @@
             });
             jQuery(document).on("tap.mainMenu click.mainMenu", function (event) {
                 var x = eventX(event), y = eventY(event);
-                console.log(event);
                 if (playBtn.coversPoint(x, y)) {
                     cleanUp();
-                    // Quick and hacky (for demo), sorry world:
-                    var playAgain = function () { headsGame.play(reset, playAgain); }
-                    var reset = function () { alert("You win!"); playAgain(); };
-                    headsGame.play(reset, playAgain);
+                    minigames.launch();
                 }
                 if (storyBtn.coversPoint(x, y)) {
                     // TODO: IMPLEMENT STORY PAGE
@@ -523,13 +527,13 @@
         };
     }());
     var headsGame = (function () {
-        var timeGiven = 2500;
+        var timeGiven = 3000;
         var render = {
             background: function (ctx) {
                 return genericRender.stageWithCurtains(ctx);
             },
             infoText: function (ctx) {
-                return genericRender.infoTexter(ctx, "   Match the heads back to their bodies!   ", canvasWidth, 24);
+                return genericRender.infoTexter(ctx, "   Match the heads back to their bodies!   ", canvasWidth);
             },
             severedNeckUpper: function (ctx, faceChars) {
                 // TODO: Paint the bloody neck
@@ -682,7 +686,7 @@
                     }
                 }
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery(document).on("touchstart mousedown", function (event) {
+                jQuery(document).on("touchstart.headsGame mousedown.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     console.log(event);
                     for (i = 0; i < persons.length; i += 1) {
@@ -693,7 +697,7 @@
                         }
                     }
                 });
-                jQuery(document).on("touchend mouseup", function () {
+                jQuery(document).on("touchend.headsGame mouseup.headsGame", function () {
                     var i, head;
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -703,7 +707,7 @@
                         }
                     }
                 });
-                jQuery(document).on("touchmove mousemove", function (event) {
+                jQuery(document).on("touchmove.headsGame mousemove.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -717,12 +721,16 @@
                         }
                     }
                 });
-                var youWin = function () {
+                var cleanUp = function () {
                     clearInterval(intervalId);
+                    jQuery(document).off(".headsGame");
+                };
+                var youWin = function () {
+                    cleanUp();
                     handleWin(execFrame, gameSt);
                 };
                 var youLose = function () {
-                    clearInterval(intervalId);
+                    cleanUp();
                     //var finalAnimationInterval = setInterval(function () {
                     //    // TODO: BLOOD EVERYWHERE, thennn run handleLoss below, from the callback
                     //}, 1000 / framerate);
@@ -732,10 +740,210 @@
         }());
         return {render: render, play: play, gameId: "heads"};
     }());
+    var shotgunGame = (function () {
+        var timeGiven = 2000;
+        var cHRad = 30;
+        var cHLineRad = 8;
+        var sandStartY = canvasHeight * 0.4;
+        var render = {
+            background: function (ctx) {
+                ctx.fillStyle = "#99e"; // The sky
+                ctx.fillRect(0, 0, canvasWidth, sandStartY);
+                ctx.fillStyle = "tan"; // The sand
+                ctx.fillRect(0, sandStartY, canvasWidth, canvasHeight - sandStartY);
+            },
+            sparrow: function (ctx, x, y) {
+                // TODO: ACTUAL BIRD
+                ctx.fillStyle = "#000";
+                ctx.fillRect(x, y, 10, 10);
+            },
+            crossHairs: function (ctx, x, y, selected, red) {
+                ctx.beginPath();
+                shapes.circle(ctx, x, y, cHRad);
+                shapes.line(ctx, x, y - cHRad - cHLineRad, x, y + cHRad + cHLineRad);
+                shapes.line(ctx, x - cHRad - cHLineRad, y, x + cHRad + cHLineRad, y);
+                ctx.strokeStyle = red ? "rgb(255, 0, 0)" :
+                                  selected ? "rgb(50, 50, 150)" :
+                                  "rgba(50, 50, 150, 0.5)";
+                ctx.lineWidth = 5;
+                ctx.stroke();
+            },
+            collonade: function (ctx, x, y) {
+                ctx.beginPath();
+                ctx.moveTo(x - 10, y + 30);
+                ctx.lineTo(x + 175, y + 30);
+                ctx.lineTo(x + 80.25, y);
+                ctx.fillStyle = "#444";
+                ctx.fill();
+                ctx.fillStyle = "gray";
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(function (i) {
+                    ctx.fillRect(x + i * 15, y + 30, 7.5, 60);
+                });
+                ctx.fillStyle = "#444";
+                ctx.fillRect(x, y + 90, 165, 21);
+            },
+            infoText: function (ctx) {
+                genericRender.infoTexter(ctx, "Shoot down Woland!", canvasWidth * 0.4);
+            }
+        };
+        // Equation from which these are derived: y = 1 - (x - 0.38)^2
+        var progressToX = function (progress) { return canvasWidth * progress; };
+        var progressToY = function (progress) { return canvasHeight * (square(progress - 0.38) * 0.6 + 0.15); };
+        var progressToPt = function (progress) {
+            return Pt(progressToX(progress), progressToY(progress));
+        };
+        var mkCrossHairs = (function () {
+            // ch.progress is in [0, 1], representing where in
+            //  birdProgress the Cross Hairs are.
+            var proto = {
+                x: function () { return progressToX(this.progress); },
+                y: function () { return progressToY(this.progress); },
+                draw: function (ctx) {
+                    render.crossHairs(ctx, this.x(), this.y(), this.active);
+                },
+                sparrowDraw: function (ctx) {
+                    // For when it's not actually a crosshairs, but the sparrow
+                    //  moving on the same path.
+                    render.sparrow(ctx, this.x(), this.hit ? this.fallHeight : this.y());
+                },
+                sparrowIsOver: function (obj) {
+                    var objx = typeof obj.x === "function" ? obj.x() : obj.x;
+                    var objy = typeof obj.y === "function" ? obj.y() : obj.y;
+                    return dist(this.x(), this.y(), objx, objy) < cHRad;
+                }
+            };
+            return function (progress, moving) {
+                var ownprops = moving ? {}
+                                      : {x: constFn(progressToX(progress)),
+                                         y: constFn(progressToY(progress))};
+                ownprops.progress = progress;
+                ownprops.active = false;
+                return makeObject(proto, ownprops);
+            };
+        }());
+        var play = (function () {
+            var ch0P = 0.2, ch1P = 0.4, ch2P = 0.8;
+            var eachBeforeIsInactive = function (chs, i) {
+                for (i = i - 1; i > 0; i -= 1) {
+                    if (chs[i].active) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+            return function (handleWin, handleLoss) {
+                var gameSt = {
+                    birdProgress: 0 // in interval [0, 1]
+                };
+                var staticCHs = [mkCrossHairs(ch0P, false),
+                                 mkCrossHairs(ch1P, false),
+                                 mkCrossHairs(ch2P, false)];
+                var sparrow = mkCrossHairs(0, true);
+                var cleanUp = function () {
+                    clearInterval(intervalId);
+                    jQuery(document).off(".shotgunGame");
+                };
+                var youLose = function () {
+                    cleanUp();
+                    return handleLoss(execFrame, gameSt);
+                };
+                var youWin = function () {
+                    cleanUp();
+                    return handleWin(execFrame, gameSt);
+                };
+                var startTime = Date.now();
+                var execFrame = function () {
+                    var now = Date.now();
+                    var timeElapsed = now - startTime;
+                    
+                    render.background(ctx);
+                    staticCHs.forEach(function (ch, i) {
+                        ch.active = sparrow.sparrowIsOver(ch);
+                        ch.draw(ctx);
+                        ch.red = false;
+                    });
+                    sparrow.sparrowDraw(ctx);
+                    if (!sparrow.hit) {
+                        sparrow.progress = timeElapsed / timeGiven;
+                    } else {
+                        sparrow.fallHeight += 10;
+                        if (sparrow.fallHeight > sandStartY + 10) {
+                            youWin();
+                        }
+                    }
+                    render.collonade(ctx, canvasWidth - 80, sandStartY - 70);
+                    genericRender.timeLeftBar(ctx, 1 - sparrow.progress);
+                    render.infoText(ctx);
+                    
+                    if (sparrow.progress > 1.1) {
+                        youLose();
+                        return;
+                    }
+                };
+                var intervalId = setInterval(execFrame, 1000 / fps);
+                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function () {
+                    staticCHs.forEach(function (ch) {
+                        if (ch.active) {
+                            ch.red = true; // TODO: EITHER GET THIS TO WORK, OR REMOVE IT
+                        }
+                    });
+                });
+                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function (event) {
+                    staticCHs.forEach(function (ch) {
+                        if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
+                            sparrow.hit = true;
+                            sparrow.fallHeight = sparrow.y();
+                        }
+                    });
+                });
+            };
+        }());
+        return {render: render, play: play};
+    }());
+    var streetcarGame = (function () {
+        var render = {
+            buildingsBg: function (ctx) { // Only needs to paint the areas not covered by render.streetcar
+                
+            },
+            streetcar: function (ctx) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(canvasWidth, 0);
+                ctx.lineTo(canvasWidth, canvasHeight);
+                ctx.lineTo(canvasWidth * 0.7, canvasHeight);
+                ctx.lineTo(canvasWidth * 0.7, canvasHeight * 0.25);
+                ctx.lineTo(canvasWidth * 0.4, canvasHeight * 0.25);
+                ctx.lineTo(canvasWidth * 0.4, canvasHeight);
+                ctx.lineTo(0, canvasHeight);
+                ctx.fillStyle = "darkgray";
+                ctx.fill();
+            }
+        };
+        var play = (function () {
+            
+            return function () {
+                
+            };
+        }());
+        return {render: render, play: play};
+    }());
     var minigames = (function () {
-        var games = [headsGame];
-        var launch = function (ctx) {
+        var games = [headsGame, shotgunGame];
+        var launch = function () {
             var gamesCompleted = [];
+            return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played
+                var newminigame = randElem(games);
+                var handleWin = function (executeFrame, gameSt) {
+                    gamesCompleted.push(newminigame.gameId);
+                    return anotherGame();
+                };
+                var handleLoss = function (executeFrame, gameSt) {
+                    mainMenu.run(ctx);
+                    return; // TODO: PUT SOME SHIT HERE THAT dISPLAYS THE LSOS TO THE USER
+                    // LIKE MOVE EXECUTION TO ANOTHER MINIGAME-LIKE THING THAT DOES A LOSS ANIMATION THING
+                };
+                return newminigame.play(handleWin, handleLoss);
+            }());
         };
         return {
             games: games,
