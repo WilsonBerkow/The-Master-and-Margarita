@@ -12,6 +12,11 @@
         });
         return o;
     };
+    var modulo = function (num, modBy) {
+        return num > modBy ? modulo(num - modBy, modBy) :
+               num < 0 ? modulo(num + modBy, modBy) :
+               num;
+    };
     (function () { // Thank you hammer.github.io, I'm using this as a little hack to prevent scrolling.
         var mc = Hammer(document.documentElement);
         // let the pan gesture support all directions.
@@ -225,17 +230,24 @@
             }
             return randFaceDims();
         },
-        randFaceChars: function (width) {
-            var faceDims = people.randFaceDims();
-            return {
-                width: faceDims.width,
-                heightFactor: faceDims.heightFactor,
-                skinClr: randSkinTone(),
-                eyesClr: "hsl(" + Math.floor(Math.random() * 360) + ", 70%, 70%)",
-                eyesHeightFactor: Math.random() * 0.5 + 0.75,
-                mouthStyle: randElem(Object.keys(people.render.mouths))
+        randFaceChars: (function () {
+            var acceptableMouths = null;
+            return function (width) {
+                if (!acceptableMouths) {
+                    acceptableMouths = Object.keys(people.render.mouths);
+                    acceptableMouths.splice(acceptableMouths.indexOf("behemoth"), 1); // Behemoth's mouth is for Behemoth only
+                }
+                var faceDims = people.randFaceDims();
+                return {
+                    width: faceDims.width,
+                    heightFactor: faceDims.heightFactor,
+                    skinClr: randSkinTone(),
+                    eyesClr: "hsl(" + Math.floor(Math.random() * 360) + ", 70%, 70%)",
+                    eyesHeightFactor: Math.random() * 0.5 + 0.75,
+                    mouthStyle: randElem(Object.keys(people.render.mouths))
+                };
             };
-        },
+        }()),
         randTorsoChars: function (skinClr) {
             return {
                 clothesClr: rgb(rand256(), rand256(), rand256()),
@@ -372,6 +384,53 @@
                         vertLine(x - wRad * -0.5, y, wRad * 0.28, wRad * 0.035);
                         vertLine(x - wRad * -0.9, y, wRad * 0.35, wRad * 0.06);
                         ctx.lineWidth = 2;
+                        ctx.stroke();
+                    };
+                }()),
+                "behemoth": (function () {
+                    var wheelAt = (function () {
+                        var sines = [],   // Sine and cosine tables are used so that the approximation work doesn't
+                            cosines = [], // have to be done more than once for any given angle. The angles of the
+                                          // spokes are rounded down to the nearest degree.
+                                          // TODO: Extract these tables and use them for as many other uses of
+                                          //  Math.sin and Math.cos as possible.
+                            oneDegree = Math.PI / 180,
+                            i,
+                            getSin = function (radians) {
+                                return sines[modulo(Math.floor(radians / oneDegree), 360)];
+                            },
+                            getCos = function (radians) {
+                                return cosines[modulo(Math.floor(radians / oneDegree), 360)];
+                            };
+                        for (i = 0; i < 360; i += 1) {
+                            sines[i] = Math.sin(i * oneDegree);
+                            cosines[i] = Math.cos(i * oneDegree);
+                        }
+                        return function (ctx, x, y, angle, mouthRad) {
+                            var i;
+                            shapes.circle(ctx, x, y, mouthRad);
+                            var spokeAngle = 0, spinOffset = angle * oneDegree, relX, relY;
+                            for (i = 0; i < 6; i += 1) {
+                                relX = getCos(spinOffset + spokeAngle) * mouthRad;
+                                relY = getSin(spinOffset + spokeAngle) * mouthRad;
+                                ctx.moveTo(x + relX, y + relY);
+                                ctx.lineTo(x - relX, y - relY);
+                                if (i !== 5) {
+                                    spokeAngle += 1/3 * Math.PI;
+                                }
+                            }
+                        };
+                    }());
+                    return function (ctx, x, y, width) {
+                        var wRad = width / 2, hRad = wRad / 3;
+                        ctx.beginPath();
+                        shapes.circle(ctx, x, y, wRad);
+                        ctx.fillStyle = "white";
+                        ctx.fill();
+                        ctx.beginPath();
+                        wheelAt(ctx, x, y, 4, wRad);
+                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = "black";
                         ctx.stroke();
                     };
                 }())
@@ -930,7 +989,7 @@
                         }
                     });
                 });
-                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function (event) {
+                jQuery(document).on("touchstart.shotgunGame mousedown.shotgunGame", function (event) {
                     staticCHs.forEach(function (ch) {
                         if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
                             sparrow.hit = true;
@@ -944,17 +1003,13 @@
     }());
     var streetcarGame = (function () {
         var timeGiven = 8000;
+        var peopleToHandle = 8;
         var mkPerson = (function () {
             var proto = {
-                // These need to be separate for proper layering:
-                drawFace: function (ctx) {
-                    ctx.fillRect(this.head.x, this.head.y, 10, 10);
+                draw: function (ctx) {
+                    people.render.torso(ctx, this);
                     people.render.face(ctx, this);
                 },
-                drawTorso: function (ctx) {
-                    people.render.torso(ctx, this);
-                },
-                draw: function (ctx) { this.drawFace(ctx); this.drawTorso(ctx); },
                 setX: function (newx) {
                     var dx = newx - this.head.x;
                     this.head.x = newx;
@@ -1011,12 +1066,13 @@
                 guy.head.mouthStyle = people.mehMouthStyle();
                 faceDims = people.randFaceDims();
             }
-            guy.head.faceWidth = faceDims.width;
+            guy.head.faceWidth = (Math.round(Math.random() * 5) + 45) * 3; // BE BIGGER FOR THIS
             guy.head.faceHeightFactor = faceDims.heightFactor;
             guy.torso.y = faceY + guy.head.faceHeightFactor * guy.head.faceWidth * 0.4
             return mkPerson(guy);
         };
         var render = {
+            behemothBlack: "#111",
             buildingsBg: function (ctx) { // Only needs to paint the areas not covered by render.streetcar
                 ctx.fillStyle = "darkgray";
                 ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -1059,9 +1115,66 @@
                 ctx.fillStyle = "lightgray";
                 ctx.fill();
             },
-            behemoth: function (ctx) {
-                
+            triangle: function (ctx, pt0, pt1, pt2, color) {
+                ctx.beginPath();
+                ctx.moveTo(pt0.x, pt0.y);
+                ctx.lineTo(pt1.x, pt1.y);
+                ctx.lineTo(pt2.x, pt2.y);
+                ctx.fillStyle = color;
+                ctx.fill();
+            },
+            behemoth: function (ctx, beh) {
+                people.render.torso(ctx, beh);
+                people.render.face(ctx, beh);
+                var x = beh.head.x, y = beh.head.y, wRad = beh.head.faceWidth / 2;
+                render.triangle(ctx, Pt(x - wRad * 0.7 - 15, y - wRad + 40),
+                                     Pt(x - wRad * 0.7 + 20, y - wRad + 16),
+                                     Pt(x - wRad * 0.7 - 24, y - wRad),
+                                     render.behemothBlack);
+                render.triangle(ctx, Pt(x + wRad * 0.7 + 15, y - wRad + 40),
+                                     Pt(x + wRad * 0.7 - 20, y - wRad + 16),
+                                     Pt(x + wRad * 0.7 + 24, y - wRad),
+                                     render.behemothBlack);
+            },
+            infoText: function (ctx) {
+                genericRender.infoTexter(ctx, "Admit Muscovites, Reject Behemoth!", canvasWidth);
+            },
+            pplLeft: function (ctx, num, serious) {
+                ctx.font = "80px arial";
+                ctx.fontWeight = "bold";
+                ctx.lineWidth = 8;
+                if (serious) {
+                    ctx.strokeStyle = "red";
+                } else {
+                    ctx.strokeStyle = "navy";
+                }
+                ctx.strokeText("" + num, 80, 200);
             }
+        };
+        var mkBehemoth = function (x, y) {
+            var faceWidth = (Math.round(Math.random() * 5) + 45) * 3;
+            var black = render.behemothBlack;
+            var asperson = mkPerson({
+                head: {
+                    x: x, y: y,
+                    mouthStyle: "behemoth",
+                    faceWidth: faceWidth,
+                    faceHeightFactor: 1.4
+                },
+                torso: {
+                    x: x, y: y + faceWidth * 0.4
+                },
+                skinClr: black,
+                clothesClr: black,
+                skinClr: black,
+                eyesClr: "orange",
+                eyesHeightFactor: 0.7,
+                role: "behemoth"
+            });
+            asperson.draw = function (ctx) {
+                render.behemoth(ctx, this);
+            };
+            return asperson;
         };
         var play = (function () {
             var floatingX = canvasWidth * 0.3 + canvasWidth * 0.3;
@@ -1070,8 +1183,14 @@
             var exitingInStartY = enteringEndY;
             var exitingInStartX = floatingX;
             var newEnteringPerson = function () {
+                var chars;
+                if (Math.random() < 0.25) {
+                    chars = mkBehemoth(floatingX, enteringStartY);
+                } else {
+                    chars = mkRandPerson(floatingX, enteringStartY);
+                }
                 return {
-                    chars: mkRandPerson(floatingX, enteringStartY),
+                    chars: chars,
                     animation: "entering", // entering | exitingOut | exitingIn -- the 'hovering' stage is just the last moments of the 'entering' stage
                     fracDone: 0
                 };
@@ -1087,13 +1206,12 @@
                     var curP = gameSt.curPerson;
                     render.buildingsBg(ctx);
                     render.streetcar(ctx);
-                    genericRender.timeLeftBar(ctx, 1 - timeElapsed / timeGiven);
+                    render.infoText(ctx);
+                    var fracTimeLeft = 1 - timeElapsed / timeGiven;
+                    genericRender.timeLeftBar(ctx, fracTimeLeft);
                     if (curP.animation === "entering") {
                         //console.log("in entering handler", "head.y is:", curP.chars.head.y, "torso.y is: ", curP.chars.torso.y);
                         curP.chars.setY(curP.fracDone * (enteringEndY - enteringStartY) + enteringStartY);
-                        if (curP.fracDone > 0.999) { // This occurs after 66 frames, or ~2 seconds (I did a log calculation).
-                            youLose(); // TODO: ANIMATION
-                        }
                         curP.fracDone = 1 - (1 - curP.fracDone) * 0.9; // Reduce dist to target by 10 percent each time
                     } else if (curP.animation === "exitingOut") {
                         (function () { // TODO: I JUST COPIED-AND-PASTED THIS AND CHANGED THE SIGN OF ONE THING, MAKE IT ACTUALLY WORK
@@ -1104,7 +1222,7 @@
                             var newY = 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
                             curP.chars.setX(newX);
                             curP.chars.setY(newY);
-                            curP.fracDone *= 1.15;
+                            curP.fracDone *= 1.3;
                         }());
                     } else if (curP.animation === "exitingIn") {
                         (function () {
@@ -1115,14 +1233,15 @@
                             var newY = 2 * exitingInStartY - 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
                             curP.chars.setX(newX);
                             curP.chars.setY(newY);
-                            curP.fracDone *= 1.15;
+                            curP.fracDone *= 1.3;
                         }());
                     }
                     curP.chars.draw(ctx);
-                    if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.99) {
+                    render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
+                    if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
                         gameSt.curPerson = newEnteringPerson(floatingX, enteringStartY);
                     }
-                    if (gameSt.peopleHandled >= 12) {
+                    if (gameSt.peopleHandled >= peopleToHandle) {
                         youWin();
                     }
                     if (timeElapsed > timeGiven) {
@@ -1143,16 +1262,33 @@
                     cleanUp();
                     handleWin(execFrame, gameSt);
                 };
+                var admitCustomer = function () {
+                    if (gameSt.curPerson.chars.role === "behemoth") {
+                        console.log(gameSt.curPerson);
+                        youLose();
+                    }
+                    gameSt.curPerson.animation = "exitingIn";
+                    gameSt.curPerson.fracDone = 0.05;
+                    gameSt.peopleHandled += 1;
+                };
+                var rejectCustomer = function () {
+                    if (gameSt.curPerson.chars.role !== "behemoth") {
+                        console.log(gameSt.curPerson);
+                        youLose();
+                    }
+                    gameSt.curPerson.animation = "exitingOut";
+                    gameSt.curPerson.fracDone = 0.05;
+                    gameSt.peopleHandled += 1;
+                };
                 handleTouchend = function (curTouch) {
+                    if (curTouch.t0 < startTime) { return; }
                     if (curTouch.y1 > curTouch.y0 + 30) { // Move down >30 pixels?
                         if (gameSt.curPerson.animation === "entering") {
-                            gameSt.curPerson.animation = "exitingIn";
-                            gameSt.curPerson.fracDone = 0.1;
+                            admitCustomer();
                         }
                     } else if (curTouch.y1 < curTouch.y0 - 30) { // Move up >30 pixels?
                         if (gameSt.curPerson.animation === "entering") {
-                            gameSt.curPerson.animation = "exitingOut";
-                            gameSt.curPerson.fracDone = 0.1;
+                            rejectCustomer();
                         }
                     }
                 };
@@ -1161,7 +1297,7 @@
         return {render: render, play: play};
     }());
     var minigames = (function () {
-        var games = [/*headsGame, shotgunGame, */streetcarGame];
+        var games = [headsGame, shotgunGame, streetcarGame];
         var launch = function () {
             var gamesCompleted = [];
             return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played
