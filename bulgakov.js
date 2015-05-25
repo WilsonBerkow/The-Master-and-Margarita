@@ -647,14 +647,18 @@
     }());
     var showStoryMenu = (function () {
         var storyHtml = jQuery("#story");
-        return function (run) {
-            storyHtml.css("display", "block");
-            jQuery('.playBtn').on('tap.storyPlayClick click.storyPlayClick', function (event) {
-                var $btn = jQuery(event.target);
-                var game = $btn.attr('target');
-                jQuery('.playBtn').off('.storyPlayClick');
+        var run;
+        jQuery('.playBtn').on('tap.storyPlayClick click.storyPlayClick', function (event) {
+            var $btn = jQuery(event.target);
+            var game = $btn.attr('target');
+            if (run) {
                 run(game);
-            });
+                run = null;
+            }
+        });
+        return function (callback) {
+            storyHtml.css("display", "block");
+            run = callback;
         };
     }());
     var hideStoryMenu = (function () {
