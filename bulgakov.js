@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    var canvas = $$('#game').get(0),
+    var canvas = document.getElementById('game'),
         ctx = canvas.getContext('2d'),
         canvasWidth = 576,
         canvasHeight = 1024,
@@ -12,12 +12,30 @@
         });
         return o;
     };
-    var bindDocEvent = function (eventStr, handler) {
-        var events = eventStr.split(" ");
-        events.forEach(function (event) {
-            $$(document).on(event, handler);
-        });
-    };
+    var clearDocEvent;
+    var bindDocEvent = (function () {
+        var mc = Hammer(document.documentElement);
+        // let the pan gesture support all directions.
+        // this will block the vertical scrolling on a touch-device while on the element
+        mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+        mc.get('press').set({ enable: true });
+        // listen to events...
+        //mc.on("panleft panright panup pandown tap press pressup", function(ev) {
+        //    myElement.textContent += ev.type +" gesture detected.";
+        //});
+        clearDocEvent = function () {
+            mc.off("press mousedown pressup mouseup tap click");
+        };
+        return function (eventStr, handler) {
+            eventStr = eventStr.replace("touchstart", "press").replace("touchend", "pressup");
+            console.log(eventStr);
+            mc.on(eventStr, handler);
+            /*var events = eventStr.split(" ");
+            events.forEach(function (event) {
+                $$(document).on(event, handler);
+            });*/
+        };
+    }());
     var calcTouchPos = (function () {
         var pageScaleFactor = 1,
             moduleOffsetX = 0,
@@ -47,8 +65,11 @@
             };
         resize();
         return function (event) {
-            return Pt((typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX) / pageScaleFactor - moduleOffsetX,
-                      (typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY) / pageScaleFactor);
+            console.log(event);
+            var clientX = event.pointers[0].clientX;//(typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX)
+            var clientY = event.pointers[0].clientY;//(typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY)
+            return Pt(clientX / pageScaleFactor - moduleOffsetX,
+                      clientY / pageScaleFactor);
         };
     }());
     var eventX = function (event) { return calcTouchPos(event).x; };
@@ -504,9 +525,9 @@
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited
                 clearInterval(intervalId);
-                $$(document).off();
+                clearDocEvent();
             };
-            bindDocEvent("touchstart mousedown", function (event) {
+            var touchStartHandler = function (event) {
                 console.log(event.type);
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
@@ -515,13 +536,15 @@
                 if (storyBtn.coversPoint(x, y)) {
                     storyBtn.isDown = true;
                 }
-            });
-            bindDocEvent("touchend mouseup", function (event) {
+            };
+            bindDocEvent("touchstart mousedown", touchStartHandler);
+            var touchEndHandler = function (event) {
                 console.log(event.type);
                 playBtn.isDown = false;
                 storyBtn.isDown = false;
-            });
-            bindDocEvent("tap click", function (event) {
+            };
+            bindDocEvent("touchend mouseup", touchEndHandler);
+            var tapHandler = function (event) {
                 console.log(event.type);
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
@@ -531,7 +554,8 @@
                 if (storyBtn.coversPoint(x, y)) {
                     // TODO: IMPLEMENT STORY PAGE
                 }
-            });
+            };
+            bindDocEvent("tap click", tapHandler);
         };
         return {
             render: render,
@@ -735,7 +759,7 @@
                 });
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    $$(document).off();
+                    clearDocEvent();
                 };
                 var youWin = function () {
                     cleanUp();
@@ -853,7 +877,7 @@
                 var sparrow = mkCrossHairs(0, true);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    $$(document).off();
+                    clearDocEvent();
                 };
                 var youLose = function () {
                     cleanUp();
@@ -1093,7 +1117,7 @@
                 var intervalId = setInterval(execFrame, 1000 / fps);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    $$(document).off();
+                    clearDocEvent();
                 };
                 var youLose = function () {
                     cleanUp();
