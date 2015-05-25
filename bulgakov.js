@@ -1319,6 +1319,12 @@
                     curP.chars.draw(ctx);
                     render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
                     if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
+                        if (curP.animation === "exitingOut" && curP.chars.role !== "behemoth") {
+                            return youLose();
+                        }
+                        if (curP.animation === "exitingIn" && curP.chars.role === "behemoth") {
+                            return youLose();
+                        }
                         gameSt.curPerson = newEnteringPerson(floatingX, enteringStartY);
                     }
                     if (gameSt.peopleHandled >= peopleToHandle) {
@@ -1343,17 +1349,11 @@
                     handleWin(execFrame, gameSt);
                 };
                 var admitCustomer = function () {
-                    if (gameSt.curPerson.chars.role === "behemoth") {
-                        youLose();
-                    }
                     gameSt.curPerson.animation = "exitingIn";
                     gameSt.curPerson.fracDone = 0.05;
                     gameSt.peopleHandled += 1;
                 };
                 var rejectCustomer = function () {
-                    if (gameSt.curPerson.chars.role !== "behemoth") {
-                        youLose();
-                    }
                     gameSt.curPerson.animation = "exitingOut";
                     gameSt.curPerson.fracDone = 0.05;
                     gameSt.peopleHandled += 1;
