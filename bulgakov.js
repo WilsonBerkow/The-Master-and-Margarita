@@ -1,6 +1,6 @@
-(function againagain() {
+(function () {
     'use strict';
-    var canvas = $('#game')[0],
+    var canvas = $$('#game').get(0),
         ctx = canvas.getContext('2d'),
         canvasWidth = 576,
         canvasHeight = 1024,
@@ -11,6 +11,12 @@
             o[prop] = props[prop];
         });
         return o;
+    };
+    var bindDocEvent = function (eventStr, handler) {
+        var events = eventStr.split(" ");
+        events.forEach(function (event) {
+            $$(document).on(event, handler);
+        });
     };
     var calcTouchPos = (function () {
         var pageScaleFactor = 1,
@@ -107,8 +113,7 @@
             ctx.moveTo(x0, y0);
             ctx.lineTo(x1, y1);
         },
-        rounded: function (ctx, x, y, width, height, radius, paintStyle) { // Thank you, Juan Mendes (this code was viciously stolen from <http://js-bits.blogspot.com/2010/07/canvas-rounded-corner-rectangles.html>, with slight modification).
-            ctx.beginPath();
+        roundedRectPath: function (ctx, x, y, width, height, radius) { // Thank you, Juan Mendes (this code was viciously stolen from <http://js-bits.blogspot.com/2010/07/canvas-rounded-corner-rectangles.html>, with slight modification).
             ctx.moveTo(x + radius, y);
             ctx.lineTo(x + width - radius, y);
             ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
@@ -119,6 +124,10 @@
             ctx.lineTo(x, y + radius);
             ctx.quadraticCurveTo(x, y, x + radius, y);
             ctx.closePath();
+        },
+        rounded: function (ctx, x, y, width, height, radius, paintStyle) {
+            ctx.beginPath();
+            shapes.roundedRectPath(ctx, x, y, width, height, radius);
             ctx[paintStyle]();
         }
     };
@@ -378,7 +387,7 @@
                 ctx.lineTo(cx + shouldersRad - 20, cy + shouldersHeight + 300);
                 ctx.lineTo(cx + shouldersRad, cy + shouldersHeight);
                 ctx.lineTo(cx + faceWRad / 2, cy + apxFaceHRad);
-                ctx.fillStyle = "#0f0f0f";
+                ctx.fillStyle = "#222";
                 ctx.fill();
                 // WHITE SHIRT OF SUIT:
                 var factor = 0.5;
@@ -495,9 +504,10 @@
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited
                 clearInterval(intervalId);
-                jQuery(document).off(".mainMenu");
+                $$(document).off();
             };
-            jQuery(document).on("touchstart.mainMenu mousedown.mainMenu", function (event) {
+            bindDocEvent("touchstart mousedown", function (event) {
+                console.log(event.type);
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     playBtn.isDown = true;
@@ -506,11 +516,13 @@
                     storyBtn.isDown = true;
                 }
             });
-            jQuery(document).on("touchend.mainMenu mouseup.mainMenu", function (event) {
+            bindDocEvent("touchend mouseup", function (event) {
+                console.log(event.type);
                 playBtn.isDown = false;
                 storyBtn.isDown = false;
             });
-            jQuery(document).on("tap.mainMenu click.mainMenu", function (event) {
+            bindDocEvent("tap click", function (event) {
+                console.log(event.type);
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     cleanUp();
@@ -686,7 +698,7 @@
                     }
                 }
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery(document).on("touchstart.headsGame mousedown.headsGame", function (event) {
+                bindDocEvent("touchstart mousedown", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     console.log(event);
                     for (i = 0; i < persons.length; i += 1) {
@@ -697,7 +709,7 @@
                         }
                     }
                 });
-                jQuery(document).on("touchend.headsGame mouseup.headsGame", function () {
+                bindDocEvent("touchend mouseup", function () {
                     var i, head;
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -707,7 +719,7 @@
                         }
                     }
                 });
-                jQuery(document).on("touchmove.headsGame mousemove.headsGame", function (event) {
+                bindDocEvent("touchmove mousemove", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -723,7 +735,7 @@
                 });
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    jQuery(document).off(".headsGame");
+                    $$(document).off();
                 };
                 var youWin = function () {
                     cleanUp();
@@ -841,7 +853,7 @@
                 var sparrow = mkCrossHairs(0, true);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    jQuery(document).off(".shotgunGame");
+                    $$(document).off();
                 };
                 var youLose = function () {
                     cleanUp();
@@ -881,14 +893,14 @@
                     }
                 };
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function () {
+                bindDocEvent("tap mousedown", function () {
                     staticCHs.forEach(function (ch) {
                         if (ch.active) {
                             ch.red = true; // TODO: EITHER GET THIS TO WORK, OR REMOVE IT
                         }
                     });
                 });
-                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function (event) {
+                bindDocEvent("tap mousedown", function (event) {
                     staticCHs.forEach(function (ch) {
                         if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
                             sparrow.hit = true;
@@ -901,34 +913,202 @@
         return {render: render, play: play};
     }());
     var streetcarGame = (function () {
+        var timeGiven = 9000;
+        var mkPerson = (function () {
+            var proto = {
+                // These need to be separate for proper layering:
+                drawFace: function (ctx) {
+                    ctx.fillRect(this.head.x, this.head.y, 10, 10);
+                    people.render.face(ctx, this);
+                },
+                drawTorso: function (ctx) {
+                    people.render.torso(ctx, this);
+                },
+                draw: function (ctx) { this.drawFace(ctx); this.drawTorso(ctx); },
+                setX: function (newx) {
+                    var dx = newx - this.head.x;
+                    this.head.x = newx;
+                    this.torso.x += dx;
+                },
+                setY: function (newy) {
+                    var dy = newy - this.head.y;
+                    this.head.y = newy;
+                    this.torso.y += dy;
+                }
+            };
+            var headProto = {
+                coversPoint: function (x, y) {
+                    return dist(x, y, this.x, this.y) < this.faceWidth / 2; // TODO: THIS IS APPROXIMATE
+                }
+            };
+            return function (chars) {
+                // TODO: INPUT VALIDATION FOR WHEN I FUCK UP
+                var person = makeObject(proto, chars);
+                person.head = makeObject(headProto, person.head);
+                return person;
+            };
+        }());
+        var roles = ["rich", "fat", "tux", "poor"];//, "sailor"]; // fat can be a fat american guy
+        var mkRandPerson = function (faceX, faceY) {
+            var faceDims;
+            var guy = {
+                head: {
+                    x: faceX,
+                    y: faceY,
+                    // mouthStyle: ...
+                    // faceWidth: ... (These are added)
+                    // faceHeightFactor: ...
+                },
+                torso: {
+                    x: faceX
+                    // y
+                },
+                skinClr: randSkinTone(),
+                eyesClr: "hsl(" + Math.floor(Math.random() * 360) + ", 70%, 70%)",
+                eyesHeightFactor: Math.random() * 0.5 + 0.75,
+                role: randElem(roles)
+            };
+            if (guy.role === "rich") {
+                guy.head.mouthStyle = people.obnoxiousMouthStyle();
+                faceDims = people.faceDims("thin");
+            } else if (guy.role === "fat") {
+                guy.head.mouthStyle = people.smilingMouthStyle();
+                faceDims = people.faceDims("fat");
+            } else if (guy.role === "tux") {
+                guy.head.mouthStyle = people.happyMouthStyle();
+                faceDims = people.randFaceDims();
+            } else if (guy.role === "poor") {
+                guy.head.mouthStyle = people.mehMouthStyle();
+                faceDims = people.randFaceDims();
+            }
+            guy.head.faceWidth = faceDims.width;
+            guy.head.faceHeightFactor = faceDims.heightFactor;
+            guy.torso.y = faceY + guy.head.faceHeightFactor * guy.head.faceWidth * 0.4
+            return mkPerson(guy);
+        };
         var render = {
             buildingsBg: function (ctx) { // Only needs to paint the areas not covered by render.streetcar
-                
+                ctx.fillStyle = "darkgray";
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
             },
             streetcar: function (ctx) {
+                var radius = 15;
                 ctx.beginPath();
-                ctx.moveTo(0, 0);
+                /*ctx.moveTo(0, 0);
                 ctx.lineTo(canvasWidth, 0);
                 ctx.lineTo(canvasWidth, canvasHeight);
-                ctx.lineTo(canvasWidth * 0.7, canvasHeight);
-                ctx.lineTo(canvasWidth * 0.7, canvasHeight * 0.25);
-                ctx.lineTo(canvasWidth * 0.4, canvasHeight * 0.25);
-                ctx.lineTo(canvasWidth * 0.4, canvasHeight);
+                ctx.lineTo(canvasWidth * 0.8, canvasHeight);
+                
+                ctx.lineTo(canvasWidth * 0.8, canvasHeight * 0.15);
+                
+                ctx.lineTo(canvasWidth * 0.3, canvasHeight * 0.15);
+                
+                ctx.lineTo(canvasWidth * 0.3, canvasHeight);
+                
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);*/
+                /*shapes.roundedRectPath(ctx,
+                                       canvasWidth * 0.3, canvasHeight * 0.15,
+                                       canvasWidth * 0.7, canvasHeight * 0.85,
+                                       15);
                 ctx.lineTo(0, canvasHeight);
-                ctx.fillStyle = "darkgray";
+                ctx.lineTo(0, 0);
+                ctx.lineTo(canvasWidth, 0);
+                ctx.lineTo(canvasWidth, canvasHeight);*/
+                shapes.roundedRectPath(ctx,
+                                       canvasWidth * 0.3, canvasHeight * 0.15,
+                                       canvasWidth * 0.6, canvasHeight * 0.9,
+                                       15);
+                ctx.fillStyle = "lightgray";
                 ctx.fill();
             }
         };
         var play = (function () {
-            
-            return function () {
-                
+            var floatingX = canvasWidth * 0.3 + canvasWidth * 0.3;
+            var enteringStartY = canvasHeight + 50;
+            var enteringEndY = canvasHeight * 0.3;
+            var exitingInStartY = enteringEndY;
+            var exitingInStartX = floatingX;
+            return function (handleWin, handleLose) {
+                var startTime = Date.now();
+                var gameSt = {
+                    peopleHandled: 0,
+                    curPerson: {
+                        chars: mkRandPerson(floatingX, enteringStartY),
+                        animation: "entering", // entering | exitingOut | exitingIn -- the 'hovering' stage is just the last moments of the 'entering' stage
+                        fracDone: 0
+                    }
+                };
+                var execFrame = function () {
+                    var timeElapsed = Date.now() - startTime;
+                    var curP = gameSt.curPerson;
+                    render.buildingsBg(ctx);
+                    render.streetcar(ctx);
+                    genericRender.timeLeftBar(ctx, 1 - timeElapsed / timeGiven);
+                    if (curP.animation === "entering") {
+                        //console.log("in entering handler", "head.y is:", curP.chars.head.y, "torso.y is: ", curP.chars.torso.y);
+                        curP.chars.setY(curP.fracDone * (enteringEndY - enteringStartY) + enteringStartY);
+                        if (curP.fracDone > 0.999) { // This occurs after 66 frames, or ~2 seconds (I did a log calculation).
+                            youLose(); // TODO: ANIMATION
+                        }
+                        curP.fracDone = 1 - (1 - curP.fracDone) * 0.9; // Reduce dist to target by 10 percent each time
+                    } else if (curP.animation === "exitingOut") {
+                        (function () { // TODO: I JUST COPIED-AND-PASTED THIS AND CHANGED THE SIGN OF ONE THING, MAKE IT ACTUALLY WORK
+                            // Follow a y = 1/x curve
+                            // This math is a mess, but i tweaked and tweaked it based on the equation and
+                            // loose intuitiony math in my head and it works aiight so aiight.
+                            var newX = exitingInStartX + (canvasWidth * 1.2 - exitingInStartX) * curP.fracDone;
+                            var newY = 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY - 2 * exitingInStartY;
+                            curP.chars.setX(newX);
+                            curP.chars.setY(newY);
+                            curP.fracDone *= 1.1;
+                        }());
+                    } else if (curP.animation === "exitingIn") {
+                        (function () {
+                            // Follow a y = 1/x curve
+                            // This math is a mess, but i tweaked and tweaked it based on the equation and
+                            // loose intuitiony math in my head and it works aiight so aiight.
+                            var newX = exitingInStartX + (canvasWidth * 1.2 - exitingInStartX) * curP.fracDone;
+                            var newY = 2 * exitingInStartY - 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
+                            curP.chars.setX(newX);
+                            curP.chars.setY(newY);
+                            curP.fracDone *= 1.1;
+                        }());
+                    }
+                    curP.chars.draw(ctx);
+                    if (gameSt.peopleHandled >= 12) {
+                        youWin();
+                    }
+                    if (timeElapsed > timeGiven) {
+                        youLose();
+                    }
+                };
+                var intervalId = setInterval(execFrame, 1000 / fps);
+                var cleanUp = function () {
+                    clearInterval(intervalId);
+                    $$(document).off();
+                };
+                var youLose = function () {
+                    cleanUp();
+                    handleWin(execFrame, gameSt);
+                };
+                var youWin = function () {
+                    cleanUp();
+                    handleWin(execFrame, gameSt);
+                };
             };
         }());
         return {render: render, play: play};
     }());
     var minigames = (function () {
-        var games = [headsGame, shotgunGame];
+        var games = [headsGame, shotgunGame, streetcarGame];
         var launch = function () {
             var gamesCompleted = [];
             return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played

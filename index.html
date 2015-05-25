@@ -4,10 +4,22 @@
         <title>The Master and Margarita</title>
         <style>
             html, body {
-                padding: 0;
                 margin: 0;
+                padding: 0;
+                user-select: none;
+                cursor: default;
                 font-family: arial;
-                background-color: black;
+                background: black;
+                width: 576px;
+                
+            }
+            #container {
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+            canvas {
+                position: absolute;
             }
             @font-face {
                 font-family: BlessedDay;
@@ -19,8 +31,11 @@
         <div id="container">
             <canvas id="game" width="576" height="1024"></canvas>
         </div>
-        <script>window.onscroll = function () { window.scrollTo(0, 0); };</script>
-        <script src="jquery-2.1.4.min.js"></script>
+        <!--<script src="jquery-2.1.4.min.js"></script>-->
+        <script src="bower-quojs-3.0.5/quo.standalone.js"></script>
+        <!--<script src="bower-quojs-3.0.5/quo.query.js"></script>
+        <script src="bower-quojs-3.0.5/quo.events.js"></script>
+        <script src="bower-quojs-3.0.5/quo.gestures.js"></script>-->
         <script src="bulgakov.js"></script>
     </body>
 </html>
