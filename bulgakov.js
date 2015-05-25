@@ -1261,7 +1261,7 @@
                 };
                 var youLose = function () {
                     cleanUp();
-                    handleWin(execFrame, gameSt);
+                    handleLose(execFrame, gameSt);
                 };
                 var youWin = function () {
                     cleanUp();
