@@ -442,10 +442,12 @@
                 // TODO: suited-up, scraggly, sailor, vampire?, gondolier, etc.
                 // TODO: implement something to have these identifying char.s on the ppl too (perhaps more than just facial expressions)
                 var x = person.torso.x, y = person.torso.y;
+                var wRad = person.head.faceWidth * 3 / 5;
+                var shoulderRadius = 50;
                 ctx.fillStyle = person.skinClr;
-                ctx.fillRect(x - 10, y, 20, 10);
+                ctx.fillRect(x - 20, y, 40, 10);
                 ctx.fillStyle = person.clothesClr;
-                ctx.fillRect(x - 50, y + 10, 100, 300);
+                shapes.rounded(ctx, x - wRad, y + 10, 2 * wRad, 350, shoulderRadius, "fill");
             },
             randPerson: function () {
                 // TODO: accumulate chars for the person as a whole, to then be used in construction of face, accessories, and torso
@@ -724,7 +726,7 @@
             }
         };
         var play = (function () {
-            var faceWidth = 140, headsY = 200, headsTargetY = 450;
+            var faceWidth = 140, headsY = 200, headsTargetY = 440;
             var pos3ToX = function (pos) {
                 return canvasWidth / 4 * (pos + 1);
             };
@@ -760,7 +762,7 @@
                         this.matched = true;
                         this.dragging = false;
                         this.x = this.targetX;
-                        this.y = this.targetY;
+                        this.y = this.targetY - 30;
                     }
                 };
                 return function (chars) {
@@ -1145,9 +1147,9 @@
                 guy.head.mouthStyle = people.mehMouthStyle();
                 faceDims = people.randFaceDims();
             }
-            guy.head.faceWidth = (Math.round(Math.random() * 5) + 45) * 3; // BE BIGGER FOR THIS
+            guy.head.faceWidth = (Math.round(Math.random() * 5) + 48) * 3; // BE BIGGER FOR THIS
             guy.head.faceHeightFactor = faceDims.heightFactor;
-            guy.torso.y = faceY + guy.head.faceHeightFactor * guy.head.faceWidth * 0.4
+            guy.torso.y = faceY + guy.head.faceHeightFactor * guy.head.faceWidth * 0.25
             return mkPerson(guy);
         };
         var render = {
@@ -1231,7 +1233,7 @@
             }
         };
         var mkBehemoth = function (x, y) {
-            var faceWidth = (Math.round(Math.random() * 5) + 45) * 3;
+            var faceWidth = (Math.round(Math.random() * 5) + 50) * 3;
             var black = render.behemothBlack;
             var asperson = mkPerson({
                 head: {
