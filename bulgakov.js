@@ -308,8 +308,8 @@
                 eyeWidth = wRad * 0.8;
                 // Face upper half:
                 ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.arc(x, y, wRad, 0, Math.PI, true);
+                ctx.moveTo(x, y + 1);
+                ctx.arc(x, y + 1, wRad, 0, Math.PI, true);
                 ctx.fillStyle = chars.skinClr;
                 ctx.fill();
                 // Face lower "half":
@@ -482,7 +482,7 @@
                 ctx.lineTo(cx + shouldersRad - 20, cy + shouldersHeight + 300);
                 ctx.lineTo(cx + shouldersRad, cy + shouldersHeight);
                 ctx.lineTo(cx + faceWRad / 2, cy + apxFaceHRad);
-                ctx.fillStyle = "#222";
+                ctx.fillStyle = "#333";
                 ctx.fill();
                 // WHITE SHIRT OF SUIT:
                 var factor = 0.5;
@@ -494,6 +494,19 @@
                 ctx.lineTo(cx + shouldersRad * factor, cy + shouldersHeight * 0.91);// * 0.7);
                 ctx.lineTo(cx + faceWRad / 2, cy + apxFaceHRad);
                 ctx.fillStyle = "white";
+                ctx.fill();
+                // TIE:
+                ctx.fillStyle = "#333";
+                ctx.beginPath();
+                ctx.moveTo(cx + faceWRad / 5, cy + shouldersHeight + 10);
+                ctx.lineTo(cx - faceWRad / 5, cy + shouldersHeight + 10);
+                ctx.lineTo(cx, cy + shouldersHeight + 35);
+                ctx.fill();
+                ctx.moveTo(cx + 2, cy + shouldersHeight - 15);
+                ctx.lineTo(cx + faceWRad / 3, cy + shouldersHeight + 15 + 210);
+                ctx.lineTo(cx, cy + shouldersHeight + 15 + 210 + 20);
+                ctx.lineTo(cx - faceWRad / 3, cy + shouldersHeight + 15 + 210);
+                ctx.lineTo(cx - 3, cy + shouldersHeight - 15);
                 ctx.fill();
                 // DARKER LINES OF SUIT FOLD TRIANGLE THINGS:
                 ctx.beginPath();
