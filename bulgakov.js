@@ -27,7 +27,7 @@
     (function () { // Simple Touch system, similar to Elm's but compatible with the Platfm interface
         var curTouch = null;
         var touchesCount = 0;
-        jQuery(document).on("touchmove", function (event) {
+        jQuery("canvas").on("touchmove", function (event) {
             var xy = calcTouchPos(event);
             if (curTouch !== null) { // Condition fails when a platfm has been materialized, and thus curTouch was reset to null
                 curTouch.x1 = xy.x;
@@ -35,7 +35,7 @@
             }
             event.preventDefault(); // Stops the swipe-to-move-through-browser-history feature in Chrome from interferring.
         });
-        jQuery(document).on("touchstart", function (event) {
+        jQuery("canvas").on("touchstart", function (event) {
             var now = Date.now(), xy = calcTouchPos(event);
             curTouch = {
                 "t0": now,
@@ -47,7 +47,7 @@
             };
             touchesCount += 1;
         });
-        jQuery(document).on("touchend", function () {
+        jQuery("canvas").on("touchend", function () {
             if (typeof handleTouchend === "function" && curTouch) {
                 handleTouchend(curTouch);
             }
@@ -288,6 +288,9 @@
                 ctx.fillStyle = 'black';
                 ctx.fill();
             },
+            faceOutline: function (ctx, width, hFactor, x, y) {
+                // TODO:!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            },
             face: function (ctx, person, x, y) {
                 var eyeWidth, wRad, height;
                 var chars = person.isFace ? person : { // The condition allows use of the face function without the data for the full person.
@@ -518,16 +521,16 @@
                 ctx.fillRect(cx - faceWRad * 0.9, cy - 49, faceWRad * 1.8, 14);
             },
             title: (function () {
-                var doWords = function (drawer) {
-                    ctx.lineWidth = 3;
+                var doWords = function (offset, drawer) {
+                    ctx.lineWidth = 5;
                     ctx.textAlign = "left";
                     ctx.font = "210px BlessedDay";
-                    drawer("The", canvasWidth * 0.0, canvasHeight * 0.275);
-                    drawer("Master", canvasWidth * 0.3, canvasHeight * 0.315);
+                    drawer("The",    canvasWidth * 0.0 + offset, canvasHeight * 0.275 + offset);
+                    drawer("Master", canvasWidth * 0.3 + offset, canvasHeight * 0.315 + offset);
                     ctx.font = "220px BlessedDay";
-                    drawer("and", canvasWidth * 0.7, canvasHeight * 0.390);
+                    drawer("and", canvasWidth * 0.7 + offset, canvasHeight * 0.390 + offset);
                     ctx.font = "170px BlessedDay";
-                    drawer("Margarita", canvasWidth * 0.25, canvasHeight * 0.46);
+                    drawer("Margarita", canvasWidth * 0.25 + offset, canvasHeight * 0.46 + offset);
                 };
                 return function (ctx) {
                     ctx.save(); // In this case, it is worth it
@@ -535,9 +538,9 @@
                     ctx.fontWeight = "bold";
                     ctx.fontAlign = "center";
                     ctx.textBaseline = "alphabetic";
-                    doWords(function () { return ctx.fillText.apply(ctx, [].slice.apply(arguments)); });
                     ctx.strokeStyle = titleClr1;
-                    doWords(function () { return ctx.strokeText.apply(ctx, [].slice.apply(arguments)); });
+                    doWords(0, function () { return ctx.strokeText.apply(ctx, [].slice.apply(arguments)); });
+                    doWords(0, function () { return ctx.fillText.apply(ctx, [].slice.apply(arguments)); });
                     ctx.restore();
                 };
             }()),
@@ -587,7 +590,7 @@
                 return btn;
             };
         }());
-        var run = function (ctx) {
+        var run = function () {
             var playBtn = mkBtn(284, 550, 200, 80, "Play");
             var storyBtn = mkBtn(280, 660, 210, 80, "Story");
             var execFrame = function () {
@@ -601,9 +604,9 @@
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited
                 clearInterval(intervalId);
-                jQuery(document).off(".mainMenu");
+                jQuery("canvas").off(".mainMenu");
             };
-            jQuery(document).on("touchstart.mainMenu mousedown.mainMenu", function (event) {
+            jQuery("canvas").on("touchstart.mainMenu mousedown.mainMenu", function (event) {
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     playBtn.isDown = true;
@@ -612,24 +615,51 @@
                     storyBtn.isDown = true;
                 }
             });
-            jQuery(document).on("touchend.mainMenu mouseup.mainMenu", function (event) {
+            jQuery("canvas").on("touchend.mainMenu mouseup.mainMenu", function (event) {
                 playBtn.isDown = false;
                 storyBtn.isDown = false;
             });
-            jQuery(document).on("tap.mainMenu click.mainMenu", function (event) {
+            jQuery("canvas").on("tap.mainMenu click.mainMenu", function (event) {
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     cleanUp();
                     minigames.launch();
                 }
                 if (storyBtn.coversPoint(x, y)) {
-                    // TODO: IMPLEMENT STORY PAGE
+                    showStoryMenu(function (game) {
+                        cleanUp();
+                        hideStoryMenu();
+                        if (game === "headsGame") {
+                            headsGame.play(mainMenu.run, mainMenu.run);
+                        } else if (game === "shotgunGame") {
+                            shotgunGame.play(mainMenu.run, mainMenu.run);
+                        } else if (game === "streetcarGame") {
+                            streetcarGame.play(mainMenu.run, mainMenu.run);
+                        }
+                    });
                 }
             });
         };
         return {
             render: render,
             run: run
+        };
+    }());
+    var showStoryMenu = (function () {
+        var storyHtml = jQuery("#story");
+        return function (run) {
+            storyHtml.css("display", "block");
+            jQuery('.playBtn').one('tap click', function (event) {
+                var $btn = jQuery(event.target);
+                var game = $btn.attr('target');
+                run(game);
+            });
+        };
+    }());
+    var hideStoryMenu = (function () {
+        var storyHtml = jQuery("#story");
+        return function (run) {
+            storyHtml.css("display", "none");
         };
     }());
     var headsGame = (function () {
@@ -792,7 +822,7 @@
                     }
                 }
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery(document).on("touchstart.headsGame mousedown.headsGame", function (event) {
+                jQuery("canvas").on("touchstart.headsGame mousedown.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     console.log(event);
                     for (i = 0; i < persons.length; i += 1) {
@@ -803,7 +833,7 @@
                         }
                     }
                 });
-                jQuery(document).on("touchend.headsGame mouseup.headsGame", function () {
+                jQuery("canvas").on("touchend.headsGame mouseup.headsGame", function () {
                     var i, head;
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -813,7 +843,7 @@
                         }
                     }
                 });
-                jQuery(document).on("touchmove.headsGame mousemove.headsGame", function (event) {
+                jQuery("canvas").on("touchmove.headsGame mousemove.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -829,7 +859,7 @@
                 });
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    jQuery(document).off(".headsGame");
+                    jQuery("canvas").off(".headsGame");
                 };
                 var youWin = function () {
                     cleanUp();
@@ -860,8 +890,10 @@
             },
             sparrow: function (ctx, x, y) {
                 // TODO: ACTUAL BIRD
-                ctx.fillStyle = "#000";
-                ctx.fillRect(x, y, 10, 10);
+                ctx.fillStyle = "brown";
+                ctx.beginPath();
+                shapes.circle(ctx, x, y, 8);
+                ctx.fill();
             },
             crossHairs: function (ctx, x, y, selected, red) {
                 ctx.beginPath();
@@ -910,7 +942,7 @@
                 sparrowDraw: function (ctx) {
                     // For when it's not actually a crosshairs, but the sparrow
                     //  moving on the same path.
-                    render.sparrow(ctx, this.x(), this.hit ? this.fallHeight : this.y());
+                    render.sparrow(ctx, this.hit ? this.fallFwdX : this.x(), this.hit ? this.fallHeight : this.y());
                 },
                 sparrowIsOver: function (obj) {
                     var objx = typeof obj.x === "function" ? obj.x() : obj.x;
@@ -947,7 +979,7 @@
                 var sparrow = mkCrossHairs(0, true);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    jQuery(document).off(".shotgunGame");
+                    jQuery("canvas").off(".shotgunGame");
                 };
                 var youLose = function () {
                     cleanUp();
@@ -972,7 +1004,9 @@
                     if (!sparrow.hit) {
                         sparrow.progress = timeElapsed / timeGiven;
                     } else {
-                        sparrow.fallHeight += 10;
+                        sparrow.fallHeight += sparrow.fallVel;
+                        sparrow.fallVel += 0.7;
+                        sparrow.fallFwdX += 2;
                         if (sparrow.fallHeight > sandStartY + 10) {
                             youWin();
                         }
@@ -987,18 +1021,20 @@
                     }
                 };
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function () {
+                jQuery("canvas").on("tap.shotgunGame mousedown.shotgunGame", function () {
                     staticCHs.forEach(function (ch) {
                         if (ch.active) {
                             ch.red = true; // TODO: EITHER GET THIS TO WORK, OR REMOVE IT
                         }
                     });
                 });
-                jQuery(document).on("touchstart.shotgunGame mousedown.shotgunGame", function (event) {
+                jQuery("canvas").on("touchstart.shotgunGame mousedown.shotgunGame", function (event) {
                     staticCHs.forEach(function (ch) {
                         if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
                             sparrow.hit = true;
+                            sparrow.fallVel = 5;
                             sparrow.fallHeight = sparrow.y();
+                            sparrow.fallFwdX = sparrow.x();
                         }
                     });
                 });
@@ -1142,7 +1178,7 @@
                                      render.behemothBlack);
             },
             infoText: function (ctx) {
-                genericRender.infoTexter(ctx, "Admit Muscovites, Reject Behemoth!", canvasWidth);
+                genericRender.infoTexter(ctx, " Admit Muscovites, Reject Behemoth! ", canvasWidth);
             },
             pplLeft: function (ctx, num, serious) {
                 ctx.font = "80px arial";
@@ -1256,7 +1292,7 @@
                 var intervalId = setInterval(execFrame, 1000 / fps);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    jQuery(document).off(".streetcarGame");
+                    jQuery("canvas").off(".streetcarGame");
                     handleTouchend = undefined;
                 };
                 var youLose = function () {
@@ -1312,7 +1348,7 @@
                     return anotherGame();
                 };
                 var handleLoss = function (executeFrame, gameSt) {
-                    mainMenu.run(ctx);
+                    mainMenu.run();
                     return; // TODO: PUT SOME SHIT HERE THAT dISPLAYS THE LSOS TO THE USER
                     // LIKE MOVE EXECUTION TO ANOTHER MINIGAME-LIKE THING THAT DOES A LOSS ANIMATION THING
                 };
@@ -1324,5 +1360,5 @@
             launch: launch
         };
     }());
-    mainMenu.run(ctx);
+    mainMenu.run();
 }());
