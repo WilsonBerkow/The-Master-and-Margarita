@@ -1,4 +1,3 @@
-// Before switch to QuoJS
 (function () {
     'use strict';
     var canvas = jQuery('#game')[0],
@@ -13,6 +12,45 @@
         });
         return o;
     };
+    (function () { // Thank you hammer.github.io, I'm using this as a little hack to prevent scrolling.
+        var mc = Hammer(document.documentElement);
+        // let the pan gesture support all directions.
+        // this will block the vertical scrolling on a touch-device while on the element
+        mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+    }());
+    var handleTouchend;
+    (function () { // Simple Touch system, similar to Elm's but compatible with the Platfm interface
+        var curTouch = null;
+        var touchesCount = 0;
+        jQuery(document).on("touchmove", function (event) {
+            var xy = calcTouchPos(event);
+            if (curTouch !== null) { // Condition fails when a platfm has been materialized, and thus curTouch was reset to null
+                curTouch.x1 = xy.x;
+                curTouch.y1 = xy.y;
+            }
+            event.preventDefault(); // Stops the swipe-to-move-through-browser-history feature in Chrome from interferring.
+        });
+        jQuery(document).on("touchstart", function (event) {
+            var now = Date.now(), xy = calcTouchPos(event);
+            curTouch = {
+                "t0": now,
+                "id": touchesCount,
+                "x0": xy.x,
+                "y0": xy.y,
+                "x1":  xy.x,
+                "y1":  xy.y
+            };
+            touchesCount += 1;
+        });
+        jQuery(document).on("touchend", function () {
+            if (typeof handleTouchend === "function" && curTouch) {
+                handleTouchend(curTouch);
+            }
+            curTouch = null;
+            // Do not use preventDefault here, it prevents
+            // triggering of the 'tap' event.
+        });
+    }());
     var calcTouchPos = (function () {
         var pageScaleFactor = 1,
             moduleOffsetX = 0,
@@ -905,7 +943,7 @@
         return {render: render, play: play};
     }());
     var streetcarGame = (function () {
-        var timeGiven = 9000;
+        var timeGiven = 8000;
         var mkPerson = (function () {
             var proto = {
                 // These need to be separate for proper layering:
@@ -1020,6 +1058,9 @@
                                        15);
                 ctx.fillStyle = "lightgray";
                 ctx.fill();
+            },
+            behemoth: function (ctx) {
+                
             }
         };
         var play = (function () {
@@ -1028,15 +1069,18 @@
             var enteringEndY = canvasHeight * 0.3;
             var exitingInStartY = enteringEndY;
             var exitingInStartX = floatingX;
+            var newEnteringPerson = function () {
+                return {
+                    chars: mkRandPerson(floatingX, enteringStartY),
+                    animation: "entering", // entering | exitingOut | exitingIn -- the 'hovering' stage is just the last moments of the 'entering' stage
+                    fracDone: 0
+                };
+            };
             return function (handleWin, handleLose) {
                 var startTime = Date.now();
                 var gameSt = {
                     peopleHandled: 0,
-                    curPerson: {
-                        chars: mkRandPerson(floatingX, enteringStartY),
-                        animation: "entering", // entering | exitingOut | exitingIn -- the 'hovering' stage is just the last moments of the 'entering' stage
-                        fracDone: 0
-                    }
+                    curPerson: newEnteringPerson()
                 };
                 var execFrame = function () {
                     var timeElapsed = Date.now() - startTime;
@@ -1057,10 +1101,10 @@
                             // This math is a mess, but i tweaked and tweaked it based on the equation and
                             // loose intuitiony math in my head and it works aiight so aiight.
                             var newX = exitingInStartX + (canvasWidth * 1.2 - exitingInStartX) * curP.fracDone;
-                            var newY = 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY - 2 * exitingInStartY;
+                            var newY = 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
                             curP.chars.setX(newX);
                             curP.chars.setY(newY);
-                            curP.fracDone *= 1.1;
+                            curP.fracDone *= 1.15;
                         }());
                     } else if (curP.animation === "exitingIn") {
                         (function () {
@@ -1071,10 +1115,13 @@
                             var newY = 2 * exitingInStartY - 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
                             curP.chars.setX(newX);
                             curP.chars.setY(newY);
-                            curP.fracDone *= 1.1;
+                            curP.fracDone *= 1.15;
                         }());
                     }
                     curP.chars.draw(ctx);
+                    if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.99) {
+                        gameSt.curPerson = newEnteringPerson(floatingX, enteringStartY);
+                    }
                     if (gameSt.peopleHandled >= 12) {
                         youWin();
                     }
@@ -1086,6 +1133,7 @@
                 var cleanUp = function () {
                     clearInterval(intervalId);
                     jQuery(document).off(".streetcarGame");
+                    handleTouchend = undefined;
                 };
                 var youLose = function () {
                     cleanUp();
@@ -1095,12 +1143,25 @@
                     cleanUp();
                     handleWin(execFrame, gameSt);
                 };
+                handleTouchend = function (curTouch) {
+                    if (curTouch.y1 > curTouch.y0 + 30) { // Move down >30 pixels?
+                        if (gameSt.curPerson.animation === "entering") {
+                            gameSt.curPerson.animation = "exitingIn";
+                            gameSt.curPerson.fracDone = 0.1;
+                        }
+                    } else if (curTouch.y1 < curTouch.y0 - 30) { // Move up >30 pixels?
+                        if (gameSt.curPerson.animation === "entering") {
+                            gameSt.curPerson.animation = "exitingOut";
+                            gameSt.curPerson.fracDone = 0.1;
+                        }
+                    }
+                };
             };
         }());
         return {render: render, play: play};
     }());
     var minigames = (function () {
-        var games = [headsGame, shotgunGame, streetcarGame];
+        var games = [/*headsGame, shotgunGame, */streetcarGame];
         var launch = function () {
             var gamesCompleted = [];
             return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played
