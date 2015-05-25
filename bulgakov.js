@@ -649,9 +649,10 @@
         var storyHtml = jQuery("#story");
         return function (run) {
             storyHtml.css("display", "block");
-            jQuery('.playBtn').one('tap click', function (event) {
+            jQuery('.playBtn').on('tap.storyPlayClick click.storyPlayClick', function (event) {
                 var $btn = jQuery(event.target);
                 var game = $btn.attr('target');
+                jQuery('.playBtn').off('.storyPlayClick');
                 run(game);
             });
         };
@@ -824,7 +825,6 @@
                 var intervalId = setInterval(execFrame, 1000 / fps);
                 jQuery("canvas").on("touchstart.headsGame mousedown.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
-                    console.log(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
                         if (head.coversPoint(x, y)) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
@@ -1251,7 +1251,6 @@
                     var fracTimeLeft = 1 - timeElapsed / timeGiven;
                     genericRender.timeLeftBar(ctx, fracTimeLeft);
                     if (curP.animation === "entering") {
-                        //console.log("in entering handler", "head.y is:", curP.chars.head.y, "torso.y is: ", curP.chars.torso.y);
                         curP.chars.setY(curP.fracDone * (enteringEndY - enteringStartY) + enteringStartY);
                         curP.fracDone = 1 - (1 - curP.fracDone) * 0.9; // Reduce dist to target by 10 percent each time
                     } else if (curP.animation === "exitingOut") {
@@ -1305,7 +1304,6 @@
                 };
                 var admitCustomer = function () {
                     if (gameSt.curPerson.chars.role === "behemoth") {
-                        console.log(gameSt.curPerson);
                         youLose();
                     }
                     gameSt.curPerson.animation = "exitingIn";
@@ -1314,7 +1312,6 @@
                 };
                 var rejectCustomer = function () {
                     if (gameSt.curPerson.chars.role !== "behemoth") {
-                        console.log(gameSt.curPerson);
                         youLose();
                     }
                     gameSt.curPerson.animation = "exitingOut";
