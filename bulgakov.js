@@ -543,19 +543,24 @@
             }()),
             button: (function () {
                 var lightClr = "#ffc27b";
+                var midClr = "#efb26b";
                 var darkClr = "#bd905b";
                 return function (ctx, btn) {
+                    var upperXOffset = btn.isDown ? 6 : 0;
+                    var upperYOffset = btn.isDown ? 6 : 0;
                     ctx.save();
                     ctx.fillStyle = btn.isDown ? lightClr : darkClr; // To make clicks visible
                     shapes.rounded(ctx, btn.x + 6, btn.y + 6, btn.width, btn.height, 15, "fill");
-                    ctx.fillStyle = btn.isDown ? darkClr : lightClr;
-                    shapes.rounded(ctx, btn.x, btn.y, btn.width, btn.height, 15, "fill");
-                    ctx.strokeStyle = btn.isDown ? lightClr : darkClr;
+                    if (!btn.isDown) {
+                        ctx.fillStyle = btn.isDown ? midClr : lightClr;
+                        shapes.rounded(ctx, btn.x + upperXOffset, btn.y + upperYOffset, btn.width, btn.height, 15, "fill");
+                    }
+                    ctx.strokeStyle = darkClr;
                     ctx.fontWeight = "bold";
                     ctx.textBaseline = "middle";
                     ctx.textAlign = "center";
                     ctx.lineWidth = 7;
-                    ctx.strokeText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 - 4);//30, y - 8);
+                    ctx.strokeText(btn.text, btn.x + btn.width / 2 + upperXOffset, btn.y + btn.height / 2 - 4 + upperYOffset);
                     ctx.restore();
                 };
             }())
