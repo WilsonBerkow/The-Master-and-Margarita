@@ -523,15 +523,36 @@
                 // FACE:
                 ctx.strokeStyle = "black";
                 people.render.face(ctx, wolandFaceChars, cx, cy);
+                ctx.fillStyle = "black";
+                ctx.beginPath();
+                ctx.moveTo(cx - 15, cy + shouldersHeight);
+                ctx.lineTo(cx + 15, cy + shouldersHeight);
+                ctx.lineTo(cx + 10, cy + shouldersHeight + 13);
+                ctx.lineTo(cx - 10, cy + shouldersHeight + 13);
+                ctx.fill();
+                // FACE SIDE HAIR:
+                ctx.beginPath();
+                ctx.arc(cx, cy, faceWRad - 1, Math.PI, 0);
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 4;
+                ctx.stroke();
                 // HAT:
                 ctx.beginPath();
-                ctx.arc(cx, cy, faceWRad, -11 / 12 * Math.PI, -1 / 12 * Math.PI);
+                ctx.moveTo(cx + faceWRad * 1.1, cy - 20);
+                ctx.lineTo(cx + faceWRad * 1.1, cy - 25);
+                ctx.lineTo(cx + faceWRad * 0.98, cy - 25);
+                ctx.lineTo(cx + faceWRad * 0.6, cy - 20 - faceWRad * 1);
+                ctx.lineTo(cx, cy - 20 - faceWRad * 1 + 20)
+                ctx.lineTo(cx - faceWRad * 0.6, cy - 20 - faceWRad * 1);
+                ctx.lineTo(cx - faceWRad * 0.98, cy - 20);
+                ctx.lineTo(cx - faceWRad * 1.1, cy - 25);
+                ctx.lineTo(cx - faceWRad * 1.1, cy - 25);
                 ctx.fillStyle = "#444";
                 ctx.fill();
                 ctx.fillStyle = "#333";
-                ctx.fillRect(cx - faceWRad * 1.1, cy - 35, faceWRad * 2.2, 14);
+                ctx.fillRect(cx - faceWRad * 1.12, cy - 35, faceWRad * 2.24, 14);
                 ctx.fillStyle = "#555";
-                ctx.fillRect(cx - faceWRad * 0.9, cy - 49, faceWRad * 1.8, 14);
+                ctx.fillRect(cx - faceWRad * 0.95, cy - 49, faceWRad * 1.9, 14);
             },
             title: (function () {
                 var doWords = function (offset, drawer) {
