@@ -1,6 +1,7 @@
+// Before switch to QuoJS
 (function () {
     'use strict';
-    var canvas = document.getElementById('game'),
+    var canvas = jQuery('#game')[0],
         ctx = canvas.getContext('2d'),
         canvasWidth = 576,
         canvasHeight = 1024,
@@ -12,30 +13,6 @@
         });
         return o;
     };
-    var clearDocEvent;
-    var bindDocEvent = (function () {
-        var mc = Hammer(document.documentElement);
-        // let the pan gesture support all directions.
-        // this will block the vertical scrolling on a touch-device while on the element
-        mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-        mc.get('press').set({ enable: true });
-        // listen to events...
-        //mc.on("panleft panright panup pandown tap press pressup", function(ev) {
-        //    myElement.textContent += ev.type +" gesture detected.";
-        //});
-        clearDocEvent = function () {
-            mc.off("press mousedown pressup mouseup tap click");
-        };
-        return function (eventStr, handler) {
-            eventStr = eventStr.replace("touchstart", "press").replace("touchend", "pressup");
-            console.log(eventStr);
-            mc.on(eventStr, handler);
-            /*var events = eventStr.split(" ");
-            events.forEach(function (event) {
-                $$(document).on(event, handler);
-            });*/
-        };
-    }());
     var calcTouchPos = (function () {
         var pageScaleFactor = 1,
             moduleOffsetX = 0,
@@ -65,11 +42,8 @@
             };
         resize();
         return function (event) {
-            console.log(event);
-            var clientX = event.pointers[0].clientX;//(typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX)
-            var clientY = event.pointers[0].clientY;//(typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY)
-            return Pt(clientX / pageScaleFactor - moduleOffsetX,
-                      clientY / pageScaleFactor);
+            return Pt((typeof event.clientX === "number" ? event.clientX : event.originalEvent.changedTouches[0].clientX) / pageScaleFactor - moduleOffsetX,
+                      (typeof event.clientY === "number" ? event.clientY : event.originalEvent.changedTouches[0].clientY) / pageScaleFactor);
         };
     }());
     var eventX = function (event) { return calcTouchPos(event).x; };
@@ -525,10 +499,9 @@
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited
                 clearInterval(intervalId);
-                clearDocEvent();
+                jQuery(document).off(".mainMenu");
             };
-            var touchStartHandler = function (event) {
-                console.log(event.type);
+            jQuery(document).on("touchstart.mainMenu mousedown.mainMenu", function (event) {
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     playBtn.isDown = true;
@@ -536,16 +509,12 @@
                 if (storyBtn.coversPoint(x, y)) {
                     storyBtn.isDown = true;
                 }
-            };
-            bindDocEvent("touchstart mousedown", touchStartHandler);
-            var touchEndHandler = function (event) {
-                console.log(event.type);
+            });
+            jQuery(document).on("touchend.mainMenu mouseup.mainMenu", function (event) {
                 playBtn.isDown = false;
                 storyBtn.isDown = false;
-            };
-            bindDocEvent("touchend mouseup", touchEndHandler);
-            var tapHandler = function (event) {
-                console.log(event.type);
+            });
+            jQuery(document).on("tap.mainMenu click.mainMenu", function (event) {
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     cleanUp();
@@ -554,8 +523,7 @@
                 if (storyBtn.coversPoint(x, y)) {
                     // TODO: IMPLEMENT STORY PAGE
                 }
-            };
-            bindDocEvent("tap click", tapHandler);
+            });
         };
         return {
             render: render,
@@ -722,7 +690,7 @@
                     }
                 }
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                bindDocEvent("touchstart mousedown", function (event) {
+                jQuery(document).on("touchstart.headsGame mousedown.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     console.log(event);
                     for (i = 0; i < persons.length; i += 1) {
@@ -733,7 +701,7 @@
                         }
                     }
                 });
-                bindDocEvent("touchend mouseup", function () {
+                jQuery(document).on("touchend.headsGame mouseup.headsGame", function () {
                     var i, head;
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -743,7 +711,7 @@
                         }
                     }
                 });
-                bindDocEvent("touchmove mousemove", function (event) {
+                jQuery(document).on("touchmove.headsGame mousemove.headsGame", function (event) {
                     var i, head, x = eventX(event), y = eventY(event);
                     for (i = 0; i < persons.length; i += 1) {
                         head = persons[i].head;
@@ -759,7 +727,7 @@
                 });
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    clearDocEvent();
+                    jQuery(document).off(".headsGame");
                 };
                 var youWin = function () {
                     cleanUp();
@@ -877,7 +845,7 @@
                 var sparrow = mkCrossHairs(0, true);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    clearDocEvent();
+                    jQuery(document).off(".shotgunGame");
                 };
                 var youLose = function () {
                     cleanUp();
@@ -917,14 +885,14 @@
                     }
                 };
                 var intervalId = setInterval(execFrame, 1000 / fps);
-                bindDocEvent("tap mousedown", function () {
+                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function () {
                     staticCHs.forEach(function (ch) {
                         if (ch.active) {
                             ch.red = true; // TODO: EITHER GET THIS TO WORK, OR REMOVE IT
                         }
                     });
                 });
-                bindDocEvent("tap mousedown", function (event) {
+                jQuery(document).on("tap.shotgunGame mousedown.shotgunGame", function (event) {
                     staticCHs.forEach(function (ch) {
                         if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
                             sparrow.hit = true;
@@ -1117,7 +1085,7 @@
                 var intervalId = setInterval(execFrame, 1000 / fps);
                 var cleanUp = function () {
                     clearInterval(intervalId);
-                    clearDocEvent();
+                    jQuery(document).off(".streetcarGame");
                 };
                 var youLose = function () {
                     cleanUp();
