@@ -719,13 +719,11 @@
                     translationAmt += 96;
                 }
                 render.background(ctx);
-                //var cx = canvasWidth * 0.5;//0.2;
-                //var cy = canvasHeight * 0.3;
-                render.woland(ctx, canvasWidth * 0.5, canvasHeight * 0.3);
-                //render.title(ctx);
+                render.woland(ctx, canvasWidth * 0.2, canvasHeight * 0.3);
+                render.title(ctx);
                 ctx.font = "70px corbel";
-                //playBtn.draw(ctx);
-                //storyBtn.draw(ctx);
+                playBtn.draw(ctx);
+                storyBtn.draw(ctx);
             };
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited

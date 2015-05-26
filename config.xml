@@ -14,5 +14,5 @@
     <preference name="Orientation" value="landscape" />
     <preference name="DisallowOverscroll" value="true"/>
     <icon src="res/icon.png" />
-    <splash src="res/screen/wp8/SplashScreenImage.jpg" />
+    <splash src="res/splashscreen.png" />
 </widget>
