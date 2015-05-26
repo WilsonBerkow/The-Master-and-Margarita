@@ -29,15 +29,15 @@
     (function () { // Simple Touch system, similar to Elm's but compatible with the Platfm interface
         var curTouch = null;
         var touchesCount = 0;
-        jQuery("canvas").on("touchmove", function (event) {
+        jQuery("canvas").on("mousemove touchmove", function (event) {
             var xy = calcTouchPos(event);
-            if (curTouch !== null) { // Condition fails when a platfm has been materialized, and thus curTouch was reset to null
+            if (curTouch !== null) {
                 curTouch.x1 = xy.x;
                 curTouch.y1 = xy.y;
             }
             event.preventDefault(); // Stops the swipe-to-move-through-browser-history feature in Chrome from interferring.
         });
-        jQuery("canvas").on("touchstart", function (event) {
+        jQuery("canvas").on("mousedown touchstart", function (event) {
             var now = Date.now(), xy = calcTouchPos(event);
             curTouch = {
                 "t0": now,
@@ -49,7 +49,7 @@
             };
             touchesCount += 1;
         });
-        jQuery("canvas").on("touchend", function () {
+        jQuery("canvas").on("mouseup touchend", function () {
             if (typeof handleTouchend === "function" && curTouch) {
                 handleTouchend(curTouch);
             }
