@@ -754,11 +754,11 @@
                         cleanUp();
                         hideStoryMenu();
                         if (game === "headsGame") {
-                            headsGame.play(goToWinScreen, goToLoseScreen, true);
+                            headsGame.play(goToWinScreen, goToLoseScreen, 1, true);
                         } else if (game === "shotgunGame") {
-                            shotgunGame.play(goToWinScreen, goToLoseScreen, true);
+                            shotgunGame.play(goToWinScreen, goToLoseScreen, 1, true);
                         } else if (game === "streetcarGame") {
-                            streetcarGame.play(goToWinScreen, goToLoseScreen, true);
+                            streetcarGame.play(goToWinScreen, goToLoseScreen, 1, true);
                         }
                     });
                 }
@@ -836,15 +836,15 @@
                     translationAmt += 96;
                 }
                 render.background(ctx);
-                if (msg) { render.message(ctx, msg); }
+                render.message(ctx, msg);
                 render.title(ctx);
-                if (score) {
+                if (typeof score === "number") {
                     render.score(ctx, Math.floor(curScore));
                 }
                 ctx.font = "60px arial";
                 exitBtn.draw(ctx);
                 if (curScore < score) {
-                    curScore += score / (fps * 2); // Take 2 seconds
+                    curScore += score / fps; // Take 1 seconds
                 } else if (curScore > score) {
                     curScore = score;
                 }
@@ -902,7 +902,7 @@
             score: function (ctx, score) {
                 genericRender.scriptText(ctx, canvasWidth / 2, canvasHeight * 0.55,
                                          "center", "80px",
-                                         "",// + score,
+                                         "",
                                          "PressStart2P", true);
             }
         };
@@ -955,7 +955,7 @@
         return {render: render, run: run};
     }());
     var headsGame = (function () {
-        var timeGiven = 3000;
+        var defaultTimeGiven = 3000;
         var render = {
             background: function (ctx) {
                 return genericRender.stageWithCurtains(ctx);
@@ -1080,7 +1080,8 @@
                         '"Daddy, why are they dead?"\n"Because, son, you failed"'];
             var lossMsg = function () { return randElem(msgs); };
             var firstTimePlaying = true;
-            return function (handleWin, handleLoss, calledFromHelp) {
+            return function (handleWin, handleLoss, timeGivenFactor, calledFromHelp) {
+                var timeGiven = (timeGivenFactor || 1) * defaultTimeGiven;
                 if (calledFromHelp) {
                     firstTimePlaying = true;
                 }
@@ -1134,7 +1135,7 @@
                 var youWin = function () {
                     var timeElapsed = Date.now() - startTime;
                     var fracTimeLeft = (timeGiven - timeElapsed) / timeGiven;
-                    var score01 = fracTimeLeft * 0.8;
+                    var score01 = fracTimeLeft * 0.8 / square(timeGivenFactor);
                     cleanUp();
                     handleWin(execFrame, gameSt, score01);
                 };
@@ -1196,7 +1197,7 @@
         return {render: render, play: play, gameId: "heads"};
     }());
     var shotgunGame = (function () {
-        var timeGiven = 2000;
+        var defaultTimeGiven = 2000;
         var cHRad = 30;
         var cHLineRad = 8;
         var sandStartY = canvasHeight * 0.4;
@@ -1300,7 +1301,8 @@
                         "He'll hear Pilate and Yeshua!",
                         "The devil knows how to aim this gun..."];
             var randMsg = function () { return randElem(msgs); };
-            return function (handleWin, handleLoss, calledFromHelp) {
+            return function (handleWin, handleLoss, timeGivenFactor, calledFromHelp) {
+                var timeGiven = (timeGivenFactor || 1) * defaultTimeGiven;
                 if (calledFromHelp) {
                     firstTimePlaying = true;
                 }
@@ -1322,7 +1324,7 @@
                 var youWin = function () {
                     var timeElapsed = Date.now() - startTime;
                     var fracTimeLeft = (timeGiven - timeElapsed) / timeGiven;
-                    var score01 = fracTimeLeft * 0.5;
+                    var score01 = fracTimeLeft * 0.5 / square(timeGivenFactor);
                     cleanUp();
                     handleWin(execFrame, gameSt, score01);
                 };
@@ -1392,7 +1394,7 @@
         return {render: render, play: play, gameId: "shotgunGame"};
     }());
     var streetcarGame = (function () {
-        var timeGiven = 8000;
+        var defaultTimeGiven = 8000;
         var peopleToHandle = 8;
         var mkPerson = (function () {
             var proto = {
@@ -1617,7 +1619,8 @@
             var letInLossMsgs =
                 ["The cat's in the streetcar!\nNo cats! No caaaaats!"];
             var timeLossMsgs = ["You didn't get through the\nline of customers!"];
-            return function (handleWin, handleLoss, calledFromHelp) {
+            return function (handleWin, handleLoss, timeGivenFactor, calledFromHelp) {
+                var timeGiven = (timeGivenFactor || 1) * defaultTimeGiven;
                 if (calledFromHelp) {
                     firstTimePlaying = true;
                 }
@@ -1640,7 +1643,7 @@
                 var youWin = function () {
                     var timeElapsed = Date.now() - startTime;
                     var fracTimeLeft = (timeGiven - timeElapsed) / timeGiven;
-                    var score01 = fracTimeLeft * 2;
+                    var score01 = fracTimeLeft * 2 / square(timeGivenFactor);
                     cleanUp();
                     handleWin(execFrame, gameSt, score01);
                 };
@@ -1740,6 +1743,7 @@
         var launch = function () {
             var gamesCompleted = [];
             var score = 0;
+            var timeGivenFactor = 1;
             var lastGame, lastlastGame, newminigame = {};
             return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played
                 lastlastGame = lastGame;
@@ -1749,13 +1753,15 @@
                 } while (newminigame.gameId === lastGame && lastGame === lastlastGame);
                 var handleWin = function (executeFrame, gameSt, score01) {
                     gamesCompleted.push(newminigame.gameId);
+                    timeGivenFactor = 0.6 + (timeGivenFactor - 0.6) * 0.95;
+                    console.log(timeGivenFactor);
                     score += score01 * 1333 + Math.random() * 100 - 50;
                     return anotherGame();
                 };
                 var handleLoss = function (executeFrame, gameSt, msg) {
                     youLoseScreen.run(msg, score);
                 };
-                return newminigame.play(handleWin, handleLoss);
+                return newminigame.play(handleWin, handleLoss, timeGivenFactor);
             }());
         };
         return {
