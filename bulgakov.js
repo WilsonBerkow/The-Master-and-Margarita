@@ -564,7 +564,7 @@
             width: 180,
             heightFactor: 1.6,
             skinClr: mkSkinTone(75),
-            leftEyeClr: "#6E3E08",
+            leftEyeClr: "#4F1F02",
             rightEyeClr: "green",
             eyesHeightFactor: 0.8,
             mouthStyle: ":l" // TODO: Make special skirm expression (e.g. the right half of a parabola)
