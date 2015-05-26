@@ -1588,6 +1588,14 @@
                     fracDone: 0
                 };
             };
+            var kickOutLossMsgs =
+                ["You kicked a Muscovite out of\nthe streetcar!",
+                 "I ain't no cat!",
+                 "How will I get to the pet store now?\n*gasp* I have an idea..."
+                 ];
+            var letInLossMsgs =
+                ["The cat's in the streetcar!\nNo cats! No caaaaats!"];
+            var timeLossMsgs = ["You didn't get through the\nline of customers!"];
             return function (handleWin, handleLoss, calledFromHelp) {
                 if (calledFromHelp) {
                     firstTimePlaying = true;
@@ -1661,10 +1669,10 @@
                     render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
                     if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
                         if (curP.animation === "exitingOut" && curP.chars.role !== "behemoth") {
-                            return youLose("You kicked a Muscovite out of\nthe streetcar!");
+                            return youLose(randElem(kickOutLossMsgs));
                         }
                         if (curP.animation === "exitingIn" && curP.chars.role === "behemoth") {
-                            return youLose("The cat's in the streetcar!\nNo cats! No caaaaats!");
+                            return youLose(randElem(letInLossMsgs));
                         }
                         gameSt.curPerson = newEnteringPerson(chanceOptions);
                     }
@@ -1672,7 +1680,7 @@
                         youWin();
                     }
                     if (timeElapsed > timeGiven) {
-                        youLose("You didn't get through the\nline of customers!");
+                        youLose(randElem(timeLossMsgs));
                     }
                 };
                 var startPlaying = function () {
