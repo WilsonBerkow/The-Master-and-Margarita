@@ -1074,20 +1074,20 @@
                 };
                 var persons = gameSt.persons;
                 (function () { // Especially ugly, so I kinda wanna contain it
-                    var takenFacePoses = [false, false, false];
                     var takenTorsoPoses = [false, false, false];
-                    [0, 1, 2].forEach(function () {
-                        var fPos, tPos;
+                    [0, 1, 2].forEach(function (facePos) {
+                        var torsoPos;
                         if (persons.length === 0) {
-                            fPos = randInt(0, 2);
-                            tPos = randInt(0, 2);
+                            torsoPos = randInt(0, 2);
+                        } else if (persons.length === 1) {
+                            do {
+                                torsoPos = randInt(0, 2);
+                            } while (takenTorsoPoses[torsoPos]);
                         } else {
-                            fPos = takenFacePoses.indexOf(false); // TODO: special case for (persons len = 2) for more randomness
-                            tPos = takenTorsoPoses.indexOf(false);
+                            torsoPos = takenTorsoPoses.indexOf(false);
                         }
-                        persons.push(mkRandPerson(fPos, tPos));
-                        takenFacePoses[fPos] = true;
-                        takenTorsoPoses[tPos] = true;
+                        persons.push(mkRandPerson(facePos, torsoPos));
+                        takenTorsoPoses[torsoPos] = true;
                     });
                 }());
                 var intervalId; // Assigned in the callback to infoOverlay
