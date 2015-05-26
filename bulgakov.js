@@ -1733,9 +1733,6 @@
                 lastlastGame = lastGame;
                 lastGame = newminigame.gameId;
                 do {
-                    console.log("getting new game");
-                    console.log("would have been ", newminigame.gameId);
-                    console.log("--");
                     newminigame = randElem(games);
                 } while (newminigame.gameId === lastGame && lastGame === lastlastGame);
                 var handleWin = function (executeFrame, gameSt) {
