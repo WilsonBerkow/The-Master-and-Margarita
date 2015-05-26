@@ -169,6 +169,31 @@
             ctx[paintStyle]();
         }
     };
+    // The following are used in both mainMenu and youLoseScreen
+    var titleClr0 = "#500";//"#505";
+    var titleClr1 = "#d99";//"#a6a";//"#900";//"#200";//"#202"; // Or, "#ddd";
+    var mkBtn = (function () {
+        var proto = {
+            draw: function (ctx) {
+                genericRender.button(ctx, this);
+            },
+            coversPoint: function (x, y) {
+                return testRange(this.x, x, this.x + this.width) &&
+                       testRange(this.y, y, this.y + this.height);
+            }
+        };
+        return function (x, y, width, height, text) {
+            var btn = makeObject(proto, {
+                x: x, // O ES6, how you're sweat, syntax sugar beckons to me...
+                y: y, // Alas, our love is forbidden, by those oldies on XP.
+                width: width,
+                height: height,
+                text: text,
+                isDown: false
+            });
+            return btn;
+        };
+    }());
     var genericRender = {
         stageWithCurtains: function (ctx) {
             var shadeColor = "#404";//"#034";
@@ -206,7 +231,39 @@
         timeLeftBar: function (ctx, fractionLeft) {
             ctx.fillStyle = "#55b";
             ctx.fillRect(0, 0, canvasWidth * fractionLeft, 10);
-        }
+        },
+        scriptText: function (ctx, x, y, alignment, size, text, font) { // TODO: USE IN TITLE FUNCTION IN MAINMENU
+            ctx.lineWidth = 5;
+            ctx.textAlign = alignment;
+            ctx.font = size + " " + (font || "BlessedDay");
+            ctx.strokeStyle = titleClr0;
+            ctx.strokeText(text, x, y);
+            ctx.fillStyle = titleClr1;
+            ctx.fillText(text, x, y);
+        },
+        button: (function () {
+            var lightClr = "#ffc27b";
+            var midClr = "#efb26b";
+            var darkClr = "#bd905b";
+            return function (ctx, btn) {
+                var upperXOffset = btn.isDown ? 6 : 0;
+                var upperYOffset = btn.isDown ? 6 : 0;
+                ctx.save();
+                ctx.fillStyle = btn.isDown ? lightClr : darkClr; // To make clicks visible
+                shapes.rounded(ctx, btn.x + 6, btn.y + 6, btn.width, btn.height, 15, "fill");
+                if (!btn.isDown) {
+                    ctx.fillStyle = btn.isDown ? midClr : lightClr;
+                    shapes.rounded(ctx, btn.x + upperXOffset, btn.y + upperYOffset, btn.width, btn.height, 15, "fill");
+                }
+                ctx.strokeStyle = darkClr;
+                ctx.fontWeight = "bold";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "center";
+                ctx.lineWidth = 7;
+                ctx.strokeText(btn.text, btn.x + btn.width / 2 + upperXOffset, btn.y + btn.height / 2 - 4 + upperYOffset);
+                ctx.restore();
+            };
+        }())
     };
     var people = {
         randFaceDims: function (width) {
@@ -455,8 +512,6 @@
         }
     };
     var mainMenu = (function () {
-        var titleClr0 = "#500";//"#505";
-        var titleClr1 = "#d99";//"#a6a";//"#900";//"#200";//"#202"; // Or, "#ddd";
         var wolandFaceChars = {
             isFace: true,
             width: 180,
@@ -579,63 +634,33 @@
                     doWords(0, function () { return ctx.fillText.apply(ctx, [].slice.apply(arguments)); });
                     ctx.restore();
                 };
-            }()),
-            button: (function () {
-                var lightClr = "#ffc27b";
-                var midClr = "#efb26b";
-                var darkClr = "#bd905b";
-                return function (ctx, btn) {
-                    var upperXOffset = btn.isDown ? 6 : 0;
-                    var upperYOffset = btn.isDown ? 6 : 0;
-                    ctx.save();
-                    ctx.fillStyle = btn.isDown ? lightClr : darkClr; // To make clicks visible
-                    shapes.rounded(ctx, btn.x + 6, btn.y + 6, btn.width, btn.height, 15, "fill");
-                    if (!btn.isDown) {
-                        ctx.fillStyle = btn.isDown ? midClr : lightClr;
-                        shapes.rounded(ctx, btn.x + upperXOffset, btn.y + upperYOffset, btn.width, btn.height, 15, "fill");
-                    }
-                    ctx.strokeStyle = darkClr;
-                    ctx.fontWeight = "bold";
-                    ctx.textBaseline = "middle";
-                    ctx.textAlign = "center";
-                    ctx.lineWidth = 7;
-                    ctx.strokeText(btn.text, btn.x + btn.width / 2 + upperXOffset, btn.y + btn.height / 2 - 4 + upperYOffset);
-                    ctx.restore();
-                };
             }())
         };
-        var mkBtn = (function () {
-            var proto = {
-                draw: function (ctx) {
-                    render.button(ctx, this.x, this.y, this.width, this.height, this.text);
-                },
-                coversPoint: function (x, y) {
-                    return testRange(this.x, x, this.x + this.width) &&
-                           testRange(this.y, y, this.y + this.height);
-                }
-            };
-            return function (x, y, width, height, text) {
-                var btn = makeObject(proto, {
-                    x: x, // O ES6, how you're sweat, syntax sugar beckons to me...
-                    y: y, // Alas, our love is forbidden, by those oldies on XP.
-                    width: width,
-                    height: height,
-                    text: text,
-                    isDown: false
-                });
-                return btn;
-            };
-        }());
+        var goToLoseScreen = function (execFrame, gameSt, msg, score) {
+            youLoseScreen.run(msg, score);
+        };
+        var firstTimeRunning = true;
         var run = function () {
             var playBtn = mkBtn(284, 550, 200, 80, "Play");
             var storyBtn = mkBtn(280, 660, 210, 80, "Story");
+            var slidingInStarted = !firstTimeRunning;
+            if (!firstTimeRunning) {
+                var translationAmt = 0;
+                ctx.translate(576, 0);
+            } else {
+                firstTimeRunning = false;
+            }
             var execFrame = function () {
+                if (slidingInStarted && translationAmt < 576) {
+                    ctx.translate(-96, 0);
+                    translationAmt += 96;
+                }
                 render.background(ctx);
                 render.woland(ctx);
                 render.title(ctx);
                 ctx.font = "70px corbel";
-                render.button(ctx, playBtn);
-                render.button(ctx, storyBtn);
+                playBtn.draw(ctx);
+                storyBtn.draw(ctx);
             };
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited
@@ -666,11 +691,11 @@
                         cleanUp();
                         hideStoryMenu();
                         if (game === "headsGame") {
-                            headsGame.play(mainMenu.run, mainMenu.run);
+                            headsGame.play(mainMenu.run, goToLoseScreen);
                         } else if (game === "shotgunGame") {
-                            shotgunGame.play(mainMenu.run, mainMenu.run);
+                            shotgunGame.play(mainMenu.run, goToLoseScreen);
                         } else if (game === "streetcarGame") {
-                            streetcarGame.play(mainMenu.run, mainMenu.run);
+                            streetcarGame.play(mainMenu.run, goToLoseScreen);
                         }
                     });
                 }
@@ -702,6 +727,86 @@
         return function (run) {
             storyHtml.css("display", "none");
         };
+    }());
+    var youLoseScreen = (function () {
+        var render = {
+            background: function (ctx) {
+                genericRender.stageWithCurtains(ctx);
+            },
+            message: function (ctx, msg) {
+                ctx.font = "34px corbel";
+                ctx.fillStyle = "darkgray";
+                ctx.textAlign = "center";
+                var yOffset = 0;
+                msg.split("\n").forEach(function (line) {
+                    ctx.fillText(line, canvasWidth / 2 + 5, canvasHeight * 0.05 + yOffset);
+                    yOffset += 38;
+                });
+            },
+            title: function (ctx) {
+                genericRender.scriptText(ctx, canvasWidth * 0.3, canvasHeight * 0.25,
+                                         "center", "310px",
+                                         "You");
+                genericRender.scriptText(ctx, canvasWidth * 0.65, canvasHeight * 0.4,
+                                         "center", "310px",
+                                         "Lose");
+            },
+            score: function (ctx, score) {
+                genericRender.scriptText(ctx, canvasWidth / 2, canvasHeight * 0.55,
+                                         "center", "80px",
+                                         "" + score,
+                                         "PressStart2P");
+            }
+        };
+        var exitBtn = mkBtn(canvasWidth / 2 - 150, canvasHeight * 0.65,
+                            300, 80,
+                            "Go Home");
+        var run = function (msg, score) {
+            score = score || 14321;
+            msg = msg || "Woland won, so...";
+            var curScore = 0;
+            var translationAmt = 0;
+            ctx.translate(576, 0);
+            var execFrame = function () {
+                if (translationAmt < 576) {
+                    ctx.translate(-96, 0);
+                    translationAmt += 96;
+                }
+                render.background(ctx);
+                if (msg) { render.message(ctx, msg); }
+                render.title(ctx);
+                render.score(ctx, Math.floor(curScore));
+                ctx.font = "60px arial";
+                exitBtn.draw(ctx);
+                if (curScore < score) {
+                    curScore += score / (fps * 2); // Take 2 seconds
+                } else if (curScore > score) {
+                    curScore = score;
+                }
+            };
+            var intervalId = setInterval(execFrame, 1000 / fps);
+            var cleanUp = function () {
+                clearInterval(intervalId);
+                jQuery("canvas").off(".youLoseScreen");
+            };
+            jQuery("canvas").on("touchstart.youLoseScreen mousedown.youLoseScreen", function (event) {
+                var xy = calcTouchPos(event);
+                if (exitBtn.coversPoint(xy.x, xy.y)) {
+                    exitBtn.isDown = true;
+                }
+            });
+            jQuery("canvas").on("touchend.youLoseScreen mouseup.youLoseScreen", function (event) {
+                exitBtn.isDown = false;
+            });
+            jQuery("canvas").on("tap.youLoseScreen click.youLoseScreen", function (event) {
+                var xy = calcTouchPos(event);
+                if (exitBtn.coversPoint(xy.x, xy.y)) {
+                    cleanUp();
+                    mainMenu.run();
+                }
+            });
+        };
+        return {render: render, run: run};
     }());
     var headsGame = (function () {
         var timeGiven = 3000;
@@ -816,6 +921,10 @@
                 guy.head.faceHeightFactor = faceDims.heightFactor;
                 return mkPerson(guy);
             };
+            var msgs = ['"They decapitated Kenny!"\n"You bastards!"',
+                        "A doctor!\nSomeone call a doctor!",
+                        '"Daddy, why are they dead?"\n"Because, son, the player failed"'];
+            var lossMsg = function () { return randElem(msgs); };
             return function (handleWin, handleLoss) {
                 var prevTime = Date.now() - 1000 / fps, dt; // Subtract from prevTime to give dt a reasonable starting value.
                 var startTime = Date.now();
@@ -854,7 +963,7 @@
                     persons.forEach(function (person) { person.drawFace(ctx); });
                     
                     if (timeElapsed > timeGiven) {
-                        youLose();
+                        youLose(lossMsg());
                         return;
                     }
                     if (persons.every(personIsMatched)) {
@@ -905,12 +1014,12 @@
                     cleanUp();
                     handleWin(execFrame, gameSt);
                 };
-                var youLose = function () {
+                var youLose = function (msg) {
                     cleanUp();
                     //var finalAnimationInterval = setInterval(function () {
                     //    // TODO: BLOOD EVERYWHERE, thennn run handleLoss below, from the callback
                     //}, 1000 / framerate);
-                    handleLoss(execFrame, gameSt);
+                    handleLoss(execFrame, gameSt, msg);
                 };
             };
         }());
@@ -961,7 +1070,7 @@
                 ctx.fillRect(x, y + 90, 165, 21);
             },
             infoText: function (ctx) {
-                genericRender.infoTexter(ctx, "Shoot down Woland!", canvasWidth * 0.4);
+                genericRender.infoTexter(ctx, "Shoot down Woland!", canvasWidth * 0.5);
             }
         };
         // Equation from which these are derived: y = 1 - (x - 0.38)^2
@@ -1009,6 +1118,10 @@
                 }
                 return true;
             };
+            var msgs = ["He's gotten to the collonade!",
+                        "He'll hear Pilate and Yeshua!",
+                        "The devil knows how to aim this gun..."];
+            var randMsg = function () { return randElem(msgs); };
             return function (handleWin, handleLoss) {
                 var gameSt = {
                     birdProgress: 0 // in interval [0, 1]
@@ -1021,9 +1134,9 @@
                     clearInterval(intervalId);
                     jQuery("canvas").off(".shotgunGame");
                 };
-                var youLose = function () {
+                var youLose = function (msg) {
                     cleanUp();
-                    return handleLoss(execFrame, gameSt);
+                    return handleLoss(execFrame, gameSt, msg);
                 };
                 var youWin = function () {
                     cleanUp();
@@ -1056,7 +1169,7 @@
                     render.infoText(ctx);
                     
                     if (sparrow.progress > 1.1) {
-                        youLose();
+                        youLose(randMsg());
                         return;
                     }
                 };
@@ -1320,10 +1433,10 @@
                     render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
                     if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
                         if (curP.animation === "exitingOut" && curP.chars.role !== "behemoth") {
-                            return youLose();
+                            return youLose("You kicked a Muscovite out of\nthe streetcar!");
                         }
                         if (curP.animation === "exitingIn" && curP.chars.role === "behemoth") {
-                            return youLose();
+                            return youLose("The cat's in the streetcar!\nNo cats! No caaaaats!");
                         }
                         gameSt.curPerson = newEnteringPerson(floatingX, enteringStartY);
                     }
@@ -1331,7 +1444,7 @@
                         youWin();
                     }
                     if (timeElapsed > timeGiven) {
-                        youLose();
+                        youLose("You didn't get through the\nline of people!");
                     }
                 };
                 var intervalId = setInterval(execFrame, 1000 / fps);
@@ -1340,9 +1453,9 @@
                     jQuery("canvas").off(".streetcarGame");
                     handleTouchend = undefined;
                 };
-                var youLose = function () {
+                var youLose = function (msg) {
                     cleanUp();
-                    handleLose(execFrame, gameSt);
+                    handleLose(execFrame, gameSt, msg);
                 };
                 var youWin = function () {
                     cleanUp();
@@ -1384,8 +1497,8 @@
                     gamesCompleted.push(newminigame.gameId);
                     return anotherGame();
                 };
-                var handleLoss = function (executeFrame, gameSt) {
-                    mainMenu.run();
+                var handleLoss = function (executeFrame, gameSt, msg) {
+                    youLoseScreen.run(msg);
                     return; // TODO: PUT SOME SHIT HERE THAT dISPLAYS THE LSOS TO THE USER
                     // LIKE MOVE EXECUTION TO ANOTHER MINIGAME-LIKE THING THAT DOES A LOSS ANIMATION THING
                 };
