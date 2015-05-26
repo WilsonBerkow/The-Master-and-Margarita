@@ -1,7 +1,9 @@
 (function () {
     'use strict';
-    var canvas = jQuery('#game')[0],
-        ctx = canvas.getContext('2d'),
+    var canvas = jQuery("#game")[0],
+        ctx = canvas.getContext("2d"),
+        overlayCanvas = jQuery("#overlay0")[0],
+        overlayCtx = overlayCanvas.getContext("2d"),
         canvasWidth = 576,
         canvasHeight = 1024,
         fps = 50;
@@ -265,6 +267,51 @@
             };
         }())
     };
+    var infoOverlay = (function () {
+        var clr = "rgba(255, 255, 255, 0.75)";
+        var render = {
+            clear: function (ctx) {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            },
+            blurBg: function (ctx) {
+                ctx.fillStyle = clr;
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            },
+            infoText: function (ctx, text) {
+                ctx.strokeStyle = "#444";
+                ctx.font = "30px corbel";
+                ctx.textAlign = "center";
+                ctx.lineWidth = 3;
+                text.split("\n").forEach(function (line, i) {
+                    ctx.strokeText(line, canvasWidth / 2, canvasHeight * 0.2 + 33 * i);
+                });
+            },
+            stdText: function (ctx) {
+                ctx.strokeStyle = "#666"; // Lawdy lawd the end is he-a
+                ctx.font = "55px corbel";
+                ctx.textAlign = "center";
+                ctx.lineWidth = 6;
+                ctx.strokeText("Tap to Continue", canvasWidth / 2, canvasHeight * 0.7);
+            }
+        };
+        return function (message, handleFinish) {
+            var execFrame = function () {
+                render.clear(overlayCtx);
+                render.blurBg(overlayCtx);
+                render.infoText(overlayCtx, message);
+                render.stdText(overlayCtx);
+            };
+            execFrame();
+            var cleanUp = function () {
+                jQuery("canvas").off(".infoOverlay");
+                render.clear(overlayCtx);
+            };
+            jQuery("canvas").on("tap.infoOverlay click.infoOverlay", function () {
+                cleanUp();
+                handleFinish();
+            });
+        };
+    }());
     var people = {
         randFaceDims: function (width) {
             return {
@@ -645,7 +692,7 @@
         var firstTimeRunning = true;
         var run = function () {
             var playBtn = mkBtn(284, 550, 200, 80, "Play");
-            var storyBtn = mkBtn(280, 660, 210, 80, "Story");
+            var storyBtn = mkBtn(290, 660, 188, 80, "Help");
             var slidingInStarted = !firstTimeRunning;
             if (!firstTimeRunning) {
                 var translationAmt = 0;
@@ -694,11 +741,11 @@
                         cleanUp();
                         hideStoryMenu();
                         if (game === "headsGame") {
-                            headsGame.play(goToWinScreen, goToLoseScreen);
+                            headsGame.play(goToWinScreen, goToLoseScreen, true);
                         } else if (game === "shotgunGame") {
-                            shotgunGame.play(goToWinScreen, goToLoseScreen);
+                            shotgunGame.play(goToWinScreen, goToLoseScreen, true);
                         } else if (game === "streetcarGame") {
-                            streetcarGame.play(goToWinScreen, goToLoseScreen);
+                            streetcarGame.play(goToWinScreen, goToLoseScreen, true);
                         }
                     });
                 }
@@ -827,17 +874,20 @@
                 });
             },
             title: function (ctx) {
-                genericRender.scriptText(ctx, canvasWidth * 0.3, canvasHeight * 0.23,
-                                         "center", "310px",
-                                         "You", null, true);
-                genericRender.scriptText(ctx, canvasWidth * 0.55, canvasHeight * 0.4,
-                                         "center", "310px",
-                                         "Win", null, true);
+                genericRender.scriptText(ctx, canvasWidth * 0.38, canvasHeight * 0.23,
+                                         "center", "280px",
+                                         "Good", null, true);
+                //genericRender.scriptText(ctx, canvasWidth * 0.16, canvasHeight * 0.38,
+                //                         "left", "250px",
+                //                         "For", null, true);
+                genericRender.scriptText(ctx, canvasWidth * 0.43, canvasHeight * 0.37,//0.38,//0.42,
+                                         "left", "250px",
+                                         "Job", null, true);
             },
             score: function (ctx, score) {
                 genericRender.scriptText(ctx, canvasWidth / 2, canvasHeight * 0.55,
                                          "center", "80px",
-                                         "" + score,
+                                         "",// + score,
                                          "PressStart2P", true);
             }
         };
@@ -1002,13 +1052,23 @@
                 guy.head.faceHeightFactor = faceDims.heightFactor;
                 return mkPerson(guy);
             };
+            var infoOverlayMsg =
+                ["Woland's retinue has cut the heads",
+                 "off three good Muscovites!",
+                 "",
+                 "Prove his contempt wrong by putting the",
+                 "heads back on the right bodies before",
+                 "any serious damage is done!"
+                 ].join("\n");
             var msgs = ['"They decapitated Kenny!"\n"You bastards!"',
                         "A doctor!\nSomeone call a doctor!",
                         '"Daddy, why are they dead?"\n"Because, son, the player failed"'];
             var lossMsg = function () { return randElem(msgs); };
-            return function (handleWin, handleLoss) {
-                var prevTime = Date.now() - 1000 / fps, dt; // Subtract from prevTime to give dt a reasonable starting value.
-                var startTime = Date.now();
+            var firstTimePlaying = true;
+            return function (handleWin, handleLoss, calledFromHelp) {
+                if (calledFromHelp) {
+                    firstTimePlaying = true;
+                }
                 var gameSt = {
                     persons: []
                 };
@@ -1030,10 +1090,10 @@
                         takenTorsoPoses[tPos] = true;
                     });
                 }());
+                var intervalId; // Assigned in the callback to infoOverlay
+                var startTime; // Same here
                 var execFrame = function () {
                     var now = Date.now();
-                    dt = now - prevTime;
-                    prevTime = now;
                     
                     var timeElapsed = now - startTime;
                     
@@ -1051,42 +1111,7 @@
                         youWin();
                         return;
                     }
-                }
-                var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery("canvas").on("touchstart.headsGame mousedown.headsGame", function (event) {
-                    var i, head, x = eventX(event), y = eventY(event);
-                    for (i = 0; i < persons.length; i += 1) {
-                        head = persons[i].head;
-                        if (head.coversPoint(x, y)) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
-                            head.dragging = true;
-                            return;
-                        }
-                    }
-                });
-                jQuery("canvas").on("touchend.headsGame mouseup.headsGame", function () {
-                    var i, head;
-                    for (i = 0; i < persons.length; i += 1) {
-                        head = persons[i].head;
-                        if (head.dragging) {
-                            head.dragging = false;
-                            head.resetPos();
-                        }
-                    }
-                });
-                jQuery("canvas").on("touchmove.headsGame mousemove.headsGame", function (event) {
-                    var i, head, x = eventX(event), y = eventY(event);
-                    for (i = 0; i < persons.length; i += 1) {
-                        head = persons[i].head;
-                        if (head.dragging) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
-                            head.x = x;
-                            head.y = y;
-                            if (head.atTarget()) {
-                                head.handleReachTarget();
-                            }
-                            return;
-                        }
-                    }
-                });
+                };
                 var cleanUp = function () {
                     clearInterval(intervalId);
                     jQuery("canvas").off(".headsGame");
@@ -1102,6 +1127,51 @@
                     //}, 1000 / framerate);
                     handleLoss(execFrame, gameSt, msg);
                 };
+                var startPlaying = function () {
+                    startTime = Date.now();
+                    intervalId = setInterval(execFrame, 1000 / fps);
+                    jQuery("canvas").on("touchstart.headsGame mousedown.headsGame", function (event) {
+                        var i, head, x = eventX(event), y = eventY(event);
+                        for (i = 0; i < persons.length; i += 1) {
+                            head = persons[i].head;
+                            if (head.coversPoint(x, y)) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
+                                head.dragging = true;
+                                return;
+                            }
+                        }
+                    });
+                    jQuery("canvas").on("touchend.headsGame mouseup.headsGame", function () {
+                        var i, head;
+                        for (i = 0; i < persons.length; i += 1) {
+                            head = persons[i].head;
+                            if (head.dragging) {
+                                head.dragging = false;
+                                head.resetPos();
+                            }
+                        }
+                    });
+                    jQuery("canvas").on("touchmove.headsGame mousemove.headsGame", function (event) {
+                        var i, head, x = eventX(event), y = eventY(event);
+                        for (i = 0; i < persons.length; i += 1) {
+                            head = persons[i].head;
+                            if (head.dragging) { // TODO: DONT USE PAGEX AND PAGEY (ESP NOT DIRECTLY)
+                                head.x = x;
+                                head.y = y;
+                                if (head.atTarget()) {
+                                    head.handleReachTarget();
+                                }
+                                return;
+                            }
+                        }
+                    });
+                };
+                if (firstTimePlaying) {
+                    firstTimePlaying = false;
+                    execFrame(); // Do it once, to render the initial image
+                    infoOverlay(infoOverlayMsg, startPlaying);
+                } else {
+                    startPlaying();
+                }
             };
         }());
         return {render: render, play: play, gameId: "heads"};
@@ -1189,6 +1259,14 @@
                 return makeObject(proto, ownprops);
             };
         }());
+        var infoOverlayMsg =
+            ["Woland's become a sparrow, and",
+             "he's on his way to the collonade",
+             "to spy on Pilate and Yeshua!",
+             "",
+             "Tap to shoot him down while you can!"
+             ].join("\n");
+        var firstTimePlaying = true;
         var play = (function () {
             var ch0P = 0.2, ch1P = 0.4, ch2P = 0.8;
             var eachBeforeIsInactive = function (chs, i) {
@@ -1203,7 +1281,10 @@
                         "He'll hear Pilate and Yeshua!",
                         "The devil knows how to aim this gun..."];
             var randMsg = function () { return randElem(msgs); };
-            return function (handleWin, handleLoss) {
+            return function (handleWin, handleLoss, calledFromHelp) {
+                if (calledFromHelp) {
+                    firstTimePlaying = true;
+                }
                 var gameSt = {
                     birdProgress: 0 // in interval [0, 1]
                 };
@@ -1223,7 +1304,8 @@
                     cleanUp();
                     return handleWin(execFrame, gameSt);
                 };
-                var startTime = Date.now();
+                var startTime;
+                var intervalId;
                 var execFrame = function () {
                     var now = Date.now();
                     var timeElapsed = now - startTime;
@@ -1254,24 +1336,34 @@
                         return;
                     }
                 };
-                var intervalId = setInterval(execFrame, 1000 / fps);
-                jQuery("canvas").on("tap.shotgunGame mousedown.shotgunGame", function () {
-                    staticCHs.forEach(function (ch) {
-                        if (ch.active) {
-                            ch.red = true; // TODO: EITHER GET THIS TO WORK, OR REMOVE IT
-                        }
+                var startPlaying = function () {
+                    startTime = Date.now();
+                    intervalId = setInterval(execFrame, 1000 / fps);
+                    jQuery("canvas").on("tap.shotgunGame mousedown.shotgunGame", function () {
+                        staticCHs.forEach(function (ch) {
+                            if (ch.active) {
+                                ch.red = true; // TODO: EITHER GET THIS TO WORK, OR REMOVE IT
+                            }
+                        });
                     });
-                });
-                jQuery("canvas").on("touchstart.shotgunGame mousedown.shotgunGame", function (event) {
-                    staticCHs.forEach(function (ch) {
-                        if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
-                            sparrow.hit = true;
-                            sparrow.fallVel = 5;
-                            sparrow.fallHeight = sparrow.y();
-                            sparrow.fallFwdX = sparrow.x();
-                        }
+                    jQuery("canvas").on("touchstart.shotgunGame mousedown.shotgunGame", function (event) {
+                        staticCHs.forEach(function (ch) {
+                            if (!sparrow.hit && sparrow.sparrowIsOver(ch)) {
+                                sparrow.hit = true;
+                                sparrow.fallVel = 5;
+                                sparrow.fallHeight = sparrow.y();
+                                sparrow.fallFwdX = sparrow.x();
+                            }
+                        });
                     });
-                });
+                };
+                if (firstTimePlaying) {
+                    firstTimePlaying = false;
+                    execFrame(); // Do it once, to render the initial image
+                    infoOverlay(infoOverlayMsg, startPlaying);
+                } else {
+                    startPlaying();
+                }
             };
         }());
         return {render: render, play: play};
@@ -1451,6 +1543,27 @@
             };
             return asperson;
         };
+        var infoOverlayMsg =
+            [/*"Behemoth is known for his shananigans,",
+             "but you're the best streetcar conductor",
+             "in Moscow, and you're not going to be",
+             "fooled",*/
+             "You're the best streetcar conductor in",
+             "Moscow. Admit all the Muscovites, and",
+             "reject that wretched cat!",
+             "",
+             "Swipe Down",
+             "to bring a customer into the streetcar",
+             "",
+             "Swipe Up",
+             "to kick a Behemoth out",
+             "",
+             "You have 8 seconds to get",
+             "through 8 customers!",
+             "",
+             "And remember! Don't mess up..."
+             ].join("\n");
+        var firstTimePlaying = true;
         var play = (function () {
             var floatingX = canvasWidth * 0.3 + canvasWidth * 0.3;
             var enteringStartY = canvasHeight + 50;
@@ -1473,12 +1586,39 @@
                     fracDone: 0
                 };
             };
-            return function (handleWin, handleLose) {
-                var startTime = Date.now();
+            return function (handleWin, handleLoss, calledFromHelp) {
+                if (calledFromHelp) {
+                    firstTimePlaying = true;
+                }
+                var startTime;
+                var intervalId;
                 var chanceOptions = [1, 3, 5, 7, 9, 11, 13, 15];
                 var gameSt = {
                     peopleHandled: 0,
                     curPerson: newEnteringPerson(chanceOptions)
+                };
+                var cleanUp = function () {
+                    clearInterval(intervalId);
+                    jQuery("canvas").off(".streetcarGame");
+                    handleTouchend = undefined;
+                };
+                var youLose = function (msg) {
+                    cleanUp();
+                    handleLoss(execFrame, gameSt, msg);
+                };
+                var youWin = function () {
+                    cleanUp();
+                    handleWin(execFrame, gameSt);
+                };
+                var admitCustomer = function () {
+                    gameSt.curPerson.animation = "exitingIn";
+                    gameSt.curPerson.fracDone = 0.05;
+                    gameSt.peopleHandled += 1;
+                };
+                var rejectCustomer = function () {
+                    gameSt.curPerson.animation = "exitingOut";
+                    gameSt.curPerson.fracDone = 0.05;
+                    gameSt.peopleHandled += 1;
                 };
                 var execFrame = function () {
                     var timeElapsed = Date.now() - startTime;
@@ -1497,7 +1637,7 @@
                             // This math is a mess, but i tweaked and tweaked it based on the equation and
                             // loose intuitiony math in my head and it works aiight so aiight.
                             var newX = exitingInStartX + (canvasWidth * 1.2 - exitingInStartX) * curP.fracDone;
-                            var newY = 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
+                            var newY = exitingInStartY / ((newX - exitingInStartX) / canvasWidth * 8 + 1);
                             curP.chars.setX(newX);
                             curP.chars.setY(newY);
                             curP.fracDone *= 1.3;
@@ -1508,7 +1648,7 @@
                             // This math is a mess, but i tweaked and tweaked it based on the equation and
                             // loose intuitiony math in my head and it works aiight so aiight.
                             var newX = exitingInStartX + (canvasWidth * 1.2 - exitingInStartX) * curP.fracDone;
-                            var newY = 2 * exitingInStartY - 1 / ((newX - exitingInStartX) / canvasWidth * 8 + 1) * exitingInStartY;
+                            var newY = 2 * exitingInStartY - exitingInStartY / ((newX - exitingInStartX) / canvasWidth * 8 + 1);
                             curP.chars.setX(newX);
                             curP.chars.setY(newY);
                             curP.fracDone *= 1.3;
@@ -1532,45 +1672,32 @@
                         youLose("You didn't get through the\nline of customers!");
                     }
                 };
-                var intervalId = setInterval(execFrame, 1000 / fps);
-                var cleanUp = function () {
-                    clearInterval(intervalId);
-                    jQuery("canvas").off(".streetcarGame");
-                    handleTouchend = undefined;
-                };
-                var youLose = function (msg) {
-                    cleanUp();
-                    handleLose(execFrame, gameSt, msg);
-                };
-                var youWin = function () {
-                    cleanUp();
-                    handleWin(execFrame, gameSt);
-                };
-                var admitCustomer = function () {
-                    gameSt.curPerson.animation = "exitingIn";
-                    gameSt.curPerson.fracDone = 0.05;
-                    gameSt.peopleHandled += 1;
-                };
-                var rejectCustomer = function () {
-                    gameSt.curPerson.animation = "exitingOut";
-                    gameSt.curPerson.fracDone = 0.05;
-                    gameSt.peopleHandled += 1;
-                };
-                handleTouchend = function (curTouch) {
-                    if (curTouch.t0 < startTime) { return; }
-                    if (curTouch.y1 > curTouch.y0 + 30) { // Move down >30 pixels?
-                        if (gameSt.curPerson.animation === "entering") {
-                            admitCustomer();
+                var startPlaying = function () {
+                    startTime = Date.now();
+                    intervalId = setInterval(execFrame, 1000 / fps);
+                    handleTouchend = function (curTouch) {
+                        if (curTouch.t0 < startTime) { return; }
+                        if (curTouch.y1 > curTouch.y0 + 30) { // Move down >30 pixels?
+                            if (gameSt.curPerson.animation === "entering") {
+                                admitCustomer();
+                            }
+                        } else if (curTouch.y1 < curTouch.y0 - 30) { // Move up >30 pixels?
+                            if (gameSt.curPerson.animation === "entering") {
+                                rejectCustomer();
+                            }
                         }
-                    } else if (curTouch.y1 < curTouch.y0 - 30) { // Move up >30 pixels?
-                        if (gameSt.curPerson.animation === "entering") {
-                            rejectCustomer();
-                        }
-                    }
+                    };
                 };
+                if (firstTimePlaying) {
+                    firstTimePlaying = false;
+                    execFrame(); // Do it once, to render the initial image
+                    infoOverlay(infoOverlayMsg, startPlaying);
+                } else {
+                    startPlaying();
+                }
             };
         }());
-        return {render: render, play: play};
+        return {render: render, play: play, gameId: "streetcarGame"};
     }());
     var minigames = (function () {
         var games = [headsGame, shotgunGame, streetcarGame];
