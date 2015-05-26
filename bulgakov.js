@@ -571,9 +571,7 @@
         };
         var render = {
             background: genericRender.stageWithCurtains,
-            woland: function (ctx) {
-                var cx = canvasWidth * 0.2;
-                var cy = canvasHeight * 0.3;
+            woland: function (ctx, cx, cy) {
                 var faceWRad = wolandFaceChars.width / 2;
                 var apxFaceHRad = wolandFaceChars.width * wolandFaceChars.heightFactor / 3;
                 var shouldersRad = faceWRad * 1.33;
@@ -641,18 +639,33 @@
                 ctx.lineWidth = 4;
                 ctx.stroke();
                 // FEDORA:
+                // Fill:
                 ctx.beginPath();
                 ctx.moveTo(cx + faceWRad * 1.1, cy - 20);
                 ctx.lineTo(cx + faceWRad * 1.1, cy - 25);
                 ctx.lineTo(cx + faceWRad * 0.98, cy - 25);
                 ctx.lineTo(cx + faceWRad * 0.6, cy - 20 - faceWRad * 1);
-                ctx.lineTo(cx, cy - 20 - faceWRad * 1 + 20)
+                ctx.lineTo(cx, cy - 20 - faceWRad + 19)
                 ctx.lineTo(cx - faceWRad * 0.6, cy - 20 - faceWRad * 1);
                 ctx.lineTo(cx - faceWRad * 0.98, cy - 20);
                 ctx.lineTo(cx - faceWRad * 1.1, cy - 25);
                 ctx.lineTo(cx - faceWRad * 1.1, cy - 25);
                 ctx.fillStyle = "#444";
                 ctx.fill();
+                // Slightly darker outline:
+                ctx.beginPath();
+                ctx.moveTo(cx + faceWRad * 1.1, cy - 20);
+                ctx.lineTo(cx + faceWRad * 1.1, cy - 25);
+                ctx.lineTo(cx + faceWRad * 0.98, cy - 25);
+                ctx.lineTo(cx + faceWRad * 0.6, cy - 20 - faceWRad * 1);
+                ctx.lineTo(cx, cy - 20 - faceWRad + 19)
+                ctx.lineTo(cx - faceWRad * 0.6, cy - 20 - faceWRad * 1);
+                ctx.lineTo(cx - faceWRad * 0.98, cy - 20);
+                ctx.lineTo(cx - faceWRad * 1.1, cy - 25);
+                ctx.lineTo(cx - faceWRad * 1.1, cy - 25);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "#3a3a3a";
+                ctx.stroke();
                 ctx.fillStyle = "#333";
                 ctx.fillRect(cx - faceWRad * 1.1325, cy - 35, faceWRad * 2.265, 14);
                 ctx.fillStyle = "#555";
@@ -706,11 +719,13 @@
                     translationAmt += 96;
                 }
                 render.background(ctx);
-                render.woland(ctx);
-                render.title(ctx);
+                //var cx = canvasWidth * 0.5;//0.2;
+                //var cy = canvasHeight * 0.3;
+                render.woland(ctx, canvasWidth * 0.5, canvasHeight * 0.3);
+                //render.title(ctx);
                 ctx.font = "70px corbel";
-                playBtn.draw(ctx);
-                storyBtn.draw(ctx);
+                //playBtn.draw(ctx);
+                //storyBtn.draw(ctx);
             };
             var intervalId = setInterval(execFrame, 1000 / fps);
             var cleanUp = function () { // To be executed when the menu is exited
