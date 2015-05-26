@@ -593,7 +593,7 @@
                 ctx.strokeStyle = "black";
                 ctx.lineWidth = 4;
                 ctx.stroke();
-                // HAT:
+                // FEDORA:
                 ctx.beginPath();
                 ctx.moveTo(cx + faceWRad * 1.1, cy - 20);
                 ctx.lineTo(cx + faceWRad * 1.1, cy - 25);
@@ -607,9 +607,9 @@
                 ctx.fillStyle = "#444";
                 ctx.fill();
                 ctx.fillStyle = "#333";
-                ctx.fillRect(cx - faceWRad * 1.12, cy - 35, faceWRad * 2.24, 14);
+                ctx.fillRect(cx - faceWRad * 1.1325, cy - 35, faceWRad * 2.265, 14);
                 ctx.fillStyle = "#555";
-                ctx.fillRect(cx - faceWRad * 0.95, cy - 49, faceWRad * 1.9, 14);
+                ctx.fillRect(cx - faceWRad * 0.925, cy - 49, faceWRad * 1.85, 14);
             },
             title: (function () {
                 var doWords = function (offset, drawer) {
@@ -1376,9 +1376,12 @@
             var enteringEndY = canvasHeight * 0.3;
             var exitingInStartY = enteringEndY;
             var exitingInStartX = floatingX;
-            var newEnteringPerson = function () {
+            var newEnteringPerson = function (chanceOptions) {
+                // pplLeft is the people that still need to be handled, including the one being created
                 var chars;
-                if (Math.random() < 0.25) {
+                var chanceOptionUsed = randElem(chanceOptions);
+                chanceOptions.splice(chanceOptions.indexOf(chanceOptionUsed), 1);
+                if (Math.random() < 1 / chanceOptionUsed) {
                     chars = mkBehemoth(floatingX, enteringStartY);
                 } else {
                     chars = mkRandPerson(floatingX, enteringStartY);
@@ -1391,9 +1394,10 @@
             };
             return function (handleWin, handleLose) {
                 var startTime = Date.now();
+                var chanceOptions = [1, 3, 5, 7, 9, 11, 13, 15];
                 var gameSt = {
                     peopleHandled: 0,
-                    curPerson: newEnteringPerson()
+                    curPerson: newEnteringPerson(chanceOptions)
                 };
                 var execFrame = function () {
                     var timeElapsed = Date.now() - startTime;
@@ -1407,7 +1411,7 @@
                         curP.chars.setY(curP.fracDone * (enteringEndY - enteringStartY) + enteringStartY);
                         curP.fracDone = 1 - (1 - curP.fracDone) * 0.9; // Reduce dist to target by 10 percent each time
                     } else if (curP.animation === "exitingOut") {
-                        (function () { // TODO: I JUST COPIED-AND-PASTED THIS AND CHANGED THE SIGN OF ONE THING, MAKE IT ACTUALLY WORK
+                        (function () {
                             // Follow a y = 1/x curve
                             // This math is a mess, but i tweaked and tweaked it based on the equation and
                             // loose intuitiony math in my head and it works aiight so aiight.
@@ -1438,7 +1442,7 @@
                         if (curP.animation === "exitingIn" && curP.chars.role === "behemoth") {
                             return youLose("The cat's in the streetcar!\nNo cats! No caaaaats!");
                         }
-                        gameSt.curPerson = newEnteringPerson(floatingX, enteringStartY);
+                        gameSt.curPerson = newEnteringPerson(chanceOptions);
                     }
                     if (gameSt.peopleHandled >= peopleToHandle) {
                         youWin();
@@ -1499,8 +1503,6 @@
                 };
                 var handleLoss = function (executeFrame, gameSt, msg) {
                     youLoseScreen.run(msg);
-                    return; // TODO: PUT SOME SHIT HERE THAT dISPLAYS THE LSOS TO THE USER
-                    // LIKE MOVE EXECUTION TO ANOTHER MINIGAME-LIKE THING THAT DOES A LOSS ANIMATION THING
                 };
                 return newminigame.play(handleWin, handleLoss);
             }());
