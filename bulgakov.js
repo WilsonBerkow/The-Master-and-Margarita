@@ -825,7 +825,7 @@
                             300, 80,
                             "Go Home");
         var run = function (msg, score) {
-            score = score || 14321;
+            console.log(score);
             msg = msg || "Woland won, so...";
             var curScore = 0;
             var translationAmt = 0;
@@ -838,7 +838,9 @@
                 render.background(ctx);
                 if (msg) { render.message(ctx, msg); }
                 render.title(ctx);
-                render.score(ctx, Math.floor(curScore));
+                if (score) {
+                    render.score(ctx, Math.floor(curScore));
+                }
                 ctx.font = "60px arial";
                 exitBtn.draw(ctx);
                 if (curScore < score) {
@@ -1075,7 +1077,7 @@
                  ].join("\n");
             var msgs = ['"They decapitated Kenny!"\n"You bastards!"',
                         "A doctor!\nSomeone call a doctor!",
-                        '"Daddy, why are they dead?"\n"Because, son, the player failed"'];
+                        '"Daddy, why are they dead?"\n"Because, son, you failed"'];
             var lossMsg = function () { return randElem(msgs); };
             var firstTimePlaying = true;
             return function (handleWin, handleLoss, calledFromHelp) {
@@ -1130,8 +1132,11 @@
                     jQuery("canvas").off(".headsGame");
                 };
                 var youWin = function () {
+                    var timeElapsed = Date.now() - startTime;
+                    var fracTimeLeft = (timeGiven - timeElapsed) / timeGiven;
+                    var score01 = fracTimeLeft * 0.8;
                     cleanUp();
-                    handleWin(execFrame, gameSt);
+                    handleWin(execFrame, gameSt, score01);
                 };
                 var youLose = function (msg) {
                     cleanUp();
@@ -1315,8 +1320,11 @@
                     return handleLoss(execFrame, gameSt, msg);
                 };
                 var youWin = function () {
+                    var timeElapsed = Date.now() - startTime;
+                    var fracTimeLeft = (timeGiven - timeElapsed) / timeGiven;
+                    var score01 = fracTimeLeft * 0.5;
                     cleanUp();
-                    return handleWin(execFrame, gameSt);
+                    handleWin(execFrame, gameSt, score01);
                 };
                 var startTime;
                 var intervalId;
@@ -1630,8 +1638,11 @@
                     handleLoss(execFrame, gameSt, msg);
                 };
                 var youWin = function () {
+                    var timeElapsed = Date.now() - startTime;
+                    var fracTimeLeft = (timeGiven - timeElapsed) / timeGiven;
+                    var score01 = fracTimeLeft * 2;
                     cleanUp();
-                    handleWin(execFrame, gameSt);
+                    handleWin(execFrame, gameSt, score01);
                 };
                 var admitCustomer = function () {
                     gameSt.curPerson.animation = "exitingIn";
@@ -1728,6 +1739,7 @@
         var games = [headsGame, shotgunGame, streetcarGame];
         var launch = function () {
             var gamesCompleted = [];
+            var score = 0;
             var lastGame, lastlastGame, newminigame = {};
             return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played
                 lastlastGame = lastGame;
@@ -1735,12 +1747,13 @@
                 do {
                     newminigame = randElem(games);
                 } while (newminigame.gameId === lastGame && lastGame === lastlastGame);
-                var handleWin = function (executeFrame, gameSt) {
+                var handleWin = function (executeFrame, gameSt, score01) {
                     gamesCompleted.push(newminigame.gameId);
+                    score += score01 * 1333 + Math.random() * 100 - 50;
                     return anotherGame();
                 };
                 var handleLoss = function (executeFrame, gameSt, msg) {
-                    youLoseScreen.run(msg);
+                    youLoseScreen.run(msg, score);
                 };
                 return newminigame.play(handleWin, handleLoss);
             }());
