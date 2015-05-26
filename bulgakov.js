@@ -232,13 +232,13 @@
             ctx.fillStyle = "#55b";
             ctx.fillRect(0, 0, canvasWidth * fractionLeft, 10);
         },
-        scriptText: function (ctx, x, y, alignment, size, text, font) { // TODO: USE IN TITLE FUNCTION IN MAINMENU
+        scriptText: function (ctx, x, y, alignment, size, text, font, reverse) { // TODO: USE IN TITLE FUNCTION IN MAINMENU
             ctx.lineWidth = 5;
             ctx.textAlign = alignment;
             ctx.font = size + " " + (font || "BlessedDay");
-            ctx.strokeStyle = titleClr0;
+            ctx.strokeStyle = reverse ? titleClr1 : titleClr0;
             ctx.strokeText(text, x, y);
-            ctx.fillStyle = titleClr1;
+            ctx.fillStyle = reverse ? titleClr0 : titleClr1;
             ctx.fillText(text, x, y);
         },
         button: (function () {
@@ -639,6 +639,9 @@
         var goToLoseScreen = function (execFrame, gameSt, msg, score) {
             youLoseScreen.run(msg, score);
         };
+        var goToWinScreen = function (execFrame, gameSt, msg, score) {
+            youWinScreen.run(msg, score);
+        };
         var firstTimeRunning = true;
         var run = function () {
             var playBtn = mkBtn(284, 550, 200, 80, "Play");
@@ -691,11 +694,11 @@
                         cleanUp();
                         hideStoryMenu();
                         if (game === "headsGame") {
-                            headsGame.play(mainMenu.run, goToLoseScreen);
+                            headsGame.play(goToWinScreen, goToLoseScreen);
                         } else if (game === "shotgunGame") {
-                            shotgunGame.play(mainMenu.run, goToLoseScreen);
+                            shotgunGame.play(goToWinScreen, goToLoseScreen);
                         } else if (game === "streetcarGame") {
-                            streetcarGame.play(mainMenu.run, goToLoseScreen);
+                            streetcarGame.play(goToWinScreen, goToLoseScreen);
                         }
                     });
                 }
@@ -799,6 +802,84 @@
                 exitBtn.isDown = false;
             });
             jQuery("canvas").on("tap.youLoseScreen click.youLoseScreen", function (event) {
+                var xy = calcTouchPos(event);
+                if (exitBtn.coversPoint(xy.x, xy.y)) {
+                    cleanUp();
+                    mainMenu.run();
+                }
+            });
+        };
+        return {render: render, run: run};
+    }());
+    var youWinScreen = (function () {
+        var render = {
+            background: function (ctx) {
+                genericRender.stageWithCurtains(ctx);
+            },
+            message: function (ctx, msg) {
+                ctx.font = "34px corbel";
+                ctx.fillStyle = "darkgray";
+                ctx.textAlign = "center";
+                var yOffset = 0;
+                msg.split("\n").forEach(function (line) {
+                    ctx.fillText(line, canvasWidth / 2 + 5, canvasHeight * 0.05 + yOffset);
+                    yOffset += 38;
+                });
+            },
+            title: function (ctx) {
+                genericRender.scriptText(ctx, canvasWidth * 0.3, canvasHeight * 0.23,
+                                         "center", "310px",
+                                         "You", null, true);
+                genericRender.scriptText(ctx, canvasWidth * 0.55, canvasHeight * 0.4,
+                                         "center", "310px",
+                                         "Win", null, true);
+            },
+            score: function (ctx, score) {
+                genericRender.scriptText(ctx, canvasWidth / 2, canvasHeight * 0.55,
+                                         "center", "80px",
+                                         "" + score,
+                                         "PressStart2P", true);
+            }
+        };
+        var exitBtn = mkBtn(canvasWidth / 2 - 200, canvasHeight * 0.65,
+                            400, 80,
+                            "Return Home");
+        var run = function (msg, score) {
+            score = score || 14321;
+            var curScore = 0;
+            var translationAmt = 0;
+            ctx.translate(576, 0);
+            var execFrame = function () {
+                if (translationAmt < 576) {
+                    ctx.translate(-96, 0);
+                    translationAmt += 96;
+                }
+                render.background(ctx);
+                render.title(ctx);
+                render.score(ctx, Math.floor(curScore));
+                ctx.font = "60px arial";
+                exitBtn.draw(ctx);
+                if (curScore < score) {
+                    curScore += score / (fps * 2); // Take 2 seconds
+                } else if (curScore > score) {
+                    curScore = score;
+                }
+            };
+            var intervalId = setInterval(execFrame, 1000 / fps);
+            var cleanUp = function () {
+                clearInterval(intervalId);
+                jQuery("canvas").off(".youWinScreen");
+            };
+            jQuery("canvas").on("touchstart.youWinScreen mousedown.youWinScreen", function (event) {
+                var xy = calcTouchPos(event);
+                if (exitBtn.coversPoint(xy.x, xy.y)) {
+                    exitBtn.isDown = true;
+                }
+            });
+            jQuery("canvas").on("touchend.youWinScreen mouseup.youWinScreen", function (event) {
+                exitBtn.isDown = false;
+            });
+            jQuery("canvas").on("tap.youWinScreen click.youWinScreen", function (event) {
                 var xy = calcTouchPos(event);
                 if (exitBtn.coversPoint(xy.x, xy.y)) {
                     cleanUp();
