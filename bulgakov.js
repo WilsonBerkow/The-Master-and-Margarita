@@ -197,6 +197,9 @@
         };
     }());
     var genericRender = {
+        clear: function (ctx) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        },
         stageWithCurtains: function (ctx) {
             var shadeColor = "#404";//"#034";
             var lightColor = "#707";//"#067";
@@ -295,13 +298,10 @@
             }
         };
         return function (message, handleFinish) {
-            var execFrame = function () {
-                render.clear(overlayCtx);
-                render.blurBg(overlayCtx);
-                render.infoText(overlayCtx, message);
-                render.stdText(overlayCtx);
-            };
-            execFrame();
+            render.clear(overlayCtx);
+            render.blurBg(overlayCtx);
+            render.infoText(overlayCtx, message);
+            render.stdText(overlayCtx);
             var cleanUp = function () {
                 jQuery("canvas").off(".infoOverlay");
                 render.clear(overlayCtx);
@@ -1095,7 +1095,7 @@
                 var execFrame = function () {
                     var now = Date.now();
                     
-                    var timeElapsed = now - startTime;
+                    var timeElapsed = now - (startTime || now);
                     
                     render.background(ctx);
                     genericRender.timeLeftBar(ctx, (timeGiven - timeElapsed) / timeGiven);
@@ -1167,6 +1167,7 @@
                 };
                 if (firstTimePlaying) {
                     firstTimePlaying = false;
+                    genericRender.clear(ctx);
                     execFrame(); // Do it once, to render the initial image
                     infoOverlay(infoOverlayMsg, startPlaying);
                 } else {
@@ -1308,7 +1309,7 @@
                 var intervalId;
                 var execFrame = function () {
                     var now = Date.now();
-                    var timeElapsed = now - startTime;
+                    var timeElapsed = now - (startTime || now);
                     
                     render.background(ctx);
                     staticCHs.forEach(function (ch, i) {
@@ -1359,6 +1360,7 @@
                 };
                 if (firstTimePlaying) {
                     firstTimePlaying = false;
+                    genericRender.clear(ctx);
                     execFrame(); // Do it once, to render the initial image
                     infoOverlay(infoOverlayMsg, startPlaying);
                 } else {
@@ -1366,7 +1368,7 @@
                 }
             };
         }());
-        return {render: render, play: play};
+        return {render: render, play: play, gameId: "shotgunGame"};
     }());
     var streetcarGame = (function () {
         var timeGiven = 8000;
@@ -1621,7 +1623,8 @@
                     gameSt.peopleHandled += 1;
                 };
                 var execFrame = function () {
-                    var timeElapsed = Date.now() - startTime;
+                    var now = Date.now();
+                    var timeElapsed = now - (startTime || now);
                     var curP = gameSt.curPerson;
                     render.buildingsBg(ctx);
                     render.streetcar(ctx);
@@ -1690,6 +1693,7 @@
                 };
                 if (firstTimePlaying) {
                     firstTimePlaying = false;
+                    genericRender.clear(ctx);
                     execFrame(); // Do it once, to render the initial image
                     infoOverlay(infoOverlayMsg, startPlaying);
                 } else {
@@ -1703,8 +1707,16 @@
         var games = [headsGame, shotgunGame, streetcarGame];
         var launch = function () {
             var gamesCompleted = [];
+            var lastGame, lastlastGame, newminigame = {};
             return (function anotherGame() { // Perhaps take an argument of a game or two to NOT play, as they were recently played
-                var newminigame = randElem(games);
+                lastlastGame = lastGame;
+                lastGame = newminigame.gameId;
+                do {
+                    console.log("getting new game");
+                    console.log("would have been ", newminigame.gameId);
+                    console.log("--");
+                    newminigame = randElem(games);
+                } while (newminigame.gameId === lastGame && lastGame === lastlastGame);
                 var handleWin = function (executeFrame, gameSt) {
                     gamesCompleted.push(newminigame.gameId);
                     return anotherGame();
