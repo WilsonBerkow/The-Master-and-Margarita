@@ -1325,6 +1325,9 @@
                     var timeElapsed = now - (startTime || now);
                     
                     render.background(ctx);
+                    render.collonade(ctx, canvasWidth - 80, sandStartY - 70);
+                    genericRender.timeLeftBar(ctx, 1 - sparrow.progress);
+                    render.infoText(ctx);
                     staticCHs.forEach(function (ch, i) {
                         ch.active = sparrow.sparrowIsOver(ch);
                         ch.draw(ctx);
@@ -1341,9 +1344,6 @@
                             youWin();
                         }
                     }
-                    render.collonade(ctx, canvasWidth - 80, sandStartY - 70);
-                    genericRender.timeLeftBar(ctx, 1 - sparrow.progress);
-                    render.infoText(ctx);
                     
                     if (sparrow.progress > 1.1) {
                         youLose(randMsg());
