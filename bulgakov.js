@@ -482,15 +482,15 @@
                         };
                     }());
                     return function (ctx, x, y, width) {
-                        var wRad = width / 2, hRad = wRad / 3;
+                        var wRad = width / 2 - 3;
                         ctx.beginPath();
                         shapes.circle(ctx, x, y, wRad);
                         ctx.fillStyle = "white";
                         ctx.fill();
                         ctx.beginPath();
                         wheelAt(ctx, x, y, 4, wRad);
-                        ctx.lineWidth = 3;
-                        ctx.strokeStyle = "black";
+                        ctx.lineWidth = 6;
+                        ctx.strokeStyle = streetcarGame.render.behemothBlack;
                         ctx.stroke();
                     };
                 }())
@@ -1529,7 +1529,7 @@
                         youWin();
                     }
                     if (timeElapsed > timeGiven) {
-                        youLose("You didn't get through the\nline of people!");
+                        youLose("You didn't get through the\nline of customers!");
                     }
                 };
                 var intervalId = setInterval(execFrame, 1000 / fps);
