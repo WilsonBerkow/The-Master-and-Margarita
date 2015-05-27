@@ -701,10 +701,11 @@
             }())
         };
         var goToLoseScreen = function (execFrame, gameSt, msg, score) {
-            youLoseScreen.run(msg, score);
+            youLoseScreen.run(msg);
         };
-        var goToWinScreen = function (execFrame, gameSt, msg, score) {
-            youWinScreen.run(msg, score);
+        var goToWinScreen = function (execFrame, gameSt, score01) {
+            console.log("score01", score01);
+            youWinScreen.run(null, score01 * 1333 + Math.random() * 100 - 50);
         };
         var firstTimeRunning = true;
         var run = function () {
@@ -906,7 +907,7 @@
             score: function (ctx, score) {
                 genericRender.scriptText(ctx, canvasWidth / 2, canvasHeight * 0.55,
                                          "center", "80px",
-                                         "",
+                                         "" + score,
                                          "PressStart2P", true);
             }
         };
@@ -914,7 +915,6 @@
                             400, 80,
                             "Return Home");
         var run = function (msg, score) {
-            score = score || 14321;
             var curScore = 0;
             var translationAmt = 0;
             ctx.translate(576, 0);
@@ -925,11 +925,12 @@
                 }
                 render.background(ctx);
                 render.title(ctx);
-                render.score(ctx, Math.floor(curScore));
                 ctx.font = "60px arial";
                 exitBtn.draw(ctx);
+                if (typeof score !== "number") { return; }
+                render.score(ctx, Math.floor(curScore));
                 if (curScore < score) {
-                    curScore += score / (fps * 2); // Take 2 seconds
+                    curScore += score / (fps / 2); // Take 1/2 seconds
                 } else if (curScore > score) {
                     curScore = score;
                 }
