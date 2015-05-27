@@ -705,7 +705,7 @@
         };
         var goToWinScreen = function (execFrame, gameSt, score01) {
             console.log("score01", score01);
-            youWinScreen.run(null, score01 * 1333 + Math.random() * 100 - 50);
+            youWinScreen.run(null, Math.max(randInt(5, 10), score01 * 1333 + Math.random() * 100 - 50));
         };
         var firstTimeRunning = true;
         var run = function () {
@@ -1680,11 +1680,15 @@
                     handleWin(execFrame, gameSt, score01);
                 };
                 var admitCustomer = function () {
+                    if (gameSt.curPerson.handled) { return; } // Not sure if this will fix the issue i'm thinking of, but why not try
+                    gameSt.curPerson.handled = true;
                     gameSt.curPerson.animation = "exitingIn";
                     gameSt.curPerson.fracDone = 0.05;
                     gameSt.peopleHandled += 1;
                 };
                 var rejectCustomer = function () {
+                    if (gameSt.curPerson.handled) { return; }
+                    gameSt.curPerson.handled = true;
                     gameSt.curPerson.animation = "exitingOut";
                     gameSt.curPerson.fracDone = 0.05;
                     gameSt.peopleHandled += 1;
@@ -1793,7 +1797,7 @@
                     gamesCompleted.push(newminigame.gameId);
                     timeGivenFactor = 0.6 + (timeGivenFactor - 0.6) * 0.95;
                     console.log(timeGivenFactor);
-                    score += score01 * 1333 + Math.random() * 100 - 50;
+                    score += Math.max(randInt(5, 10), score01 * 1333 + Math.random() * 100 - 50);
                     return anotherGame();
                 };
                 var handleLoss = function (executeFrame, gameSt, msg) {
