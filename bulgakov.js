@@ -718,10 +718,13 @@
             } else {
                 firstTimeRunning = false;
             }
+            var slidingEnded = false;
             var execFrame = function () {
                 if (slidingInStarted && translationAmt < 576) {
                     ctx.translate(-96, 0);
                     translationAmt += 96;
+                } else {
+                    slidingEnded = true;
                 }
                 render.background(ctx);
                 render.woland(ctx, canvasWidth * 0.2, canvasHeight * 0.3);
@@ -736,6 +739,7 @@
                 jQuery("canvas").off(".mainMenu");
             };
             jQuery("canvas").on("touchstart.mainMenu mousedown.mainMenu", function (event) {
+                if (!slidingEnded) { return; }
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     playBtn.isDown = true;
@@ -745,10 +749,12 @@
                 }
             });
             jQuery("canvas").on("touchend.mainMenu mouseup.mainMenu", function (event) {
+                if (!slidingEnded) { return; }
                 playBtn.isDown = false;
                 storyBtn.isDown = false;
             });
             jQuery("canvas").on("tap.mainMenu click.mainMenu", function (event) {
+                if (!slidingEnded) { return; }
                 var x = eventX(event), y = eventY(event);
                 if (playBtn.coversPoint(x, y)) {
                     cleanUp();
@@ -835,10 +841,13 @@
             var curScore = 0;
             var translationAmt = 0;
             ctx.translate(576, 0);
+            var slidingEnded = false;
             var execFrame = function () {
                 if (translationAmt < 576) {
                     ctx.translate(-96, 0);
                     translationAmt += 96;
+                } else {
+                    slidingEnded = true;
                 }
                 render.background(ctx);
                 render.message(ctx, msg);
@@ -860,15 +869,18 @@
                 jQuery("canvas").off(".youLoseScreen");
             };
             jQuery("canvas").on("touchstart.youLoseScreen mousedown.youLoseScreen", function (event) {
+                if (!slidingEnded) { return; }
                 var xy = calcTouchPos(event);
                 if (exitBtn.coversPoint(xy.x, xy.y)) {
                     exitBtn.isDown = true;
                 }
             });
             jQuery("canvas").on("touchend.youLoseScreen mouseup.youLoseScreen", function (event) {
+                if (!slidingEnded) { return; }
                 exitBtn.isDown = false;
             });
             jQuery("canvas").on("tap.youLoseScreen click.youLoseScreen", function (event) {
+                if (!slidingEnded) { return; }
                 var xy = calcTouchPos(event);
                 if (exitBtn.coversPoint(xy.x, xy.y)) {
                     cleanUp();
