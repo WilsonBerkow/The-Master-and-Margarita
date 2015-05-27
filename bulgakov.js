@@ -138,6 +138,10 @@
     };
     var Pt = function (x, y) { return {x: x, y: y}; };
     var shapes = { // General-purpose renderers for shapes
+        semicircle: function (ctx, x, y, radius) {
+            ctx.moveTo(x, y);
+            ctx.arc(x, y, radius, 0, Math.PI, true);
+        },
         circle: function (ctx, x, y, radius) {
             ctx.moveTo(x, y);
             ctx.arc(x, y, radius, 0, 2 * Math.PI, true);
@@ -1463,50 +1467,65 @@
             guy.torso.y = faceY + guy.head.faceHeightFactor * guy.head.faceWidth * 0.25
             return mkPerson(guy);
         };
+        var row = function (y, height, color, style) {
+            style = style || "fill";
+            ctx[style + "Style"] = color;
+            ctx[style + "Rect"](0, y, canvasWidth, height);
+        };
+        var bsHeight = canvasHeight * 0.4; // Height of bottom of buildings in rendering
         var render = {
             behemothBlack: "#111",
-            buildingsBg: function (ctx) { // Only needs to paint the areas not covered by render.streetcar
-                ctx.fillStyle = "darkgray";
-                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            },
-            streetcar: function (ctx) {
-                var radius = 15;
+            bush: function (ctx, x) {
+                ctx.fillStyle = "darkgreen";
                 ctx.beginPath();
-                /*ctx.moveTo(0, 0);
-                ctx.lineTo(canvasWidth, 0);
-                ctx.lineTo(canvasWidth, canvasHeight);
-                ctx.lineTo(canvasWidth * 0.8, canvasHeight);
-                
-                ctx.lineTo(canvasWidth * 0.8, canvasHeight * 0.15);
-                
-                ctx.lineTo(canvasWidth * 0.3, canvasHeight * 0.15);
-                
-                ctx.lineTo(canvasWidth * 0.3, canvasHeight);
-                
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + width - radius, y);
-                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                ctx.lineTo(x + width, y + height - radius);
-                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                ctx.lineTo(x + radius, y + height);
-                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);*/
-                /*shapes.roundedRectPath(ctx,
-                                       canvasWidth * 0.3, canvasHeight * 0.15,
-                                       canvasWidth * 0.7, canvasHeight * 0.85,
-                                       15);
-                ctx.lineTo(0, canvasHeight);
-                ctx.lineTo(0, 0);
-                ctx.lineTo(canvasWidth, 0);
-                ctx.lineTo(canvasWidth, canvasHeight);*/
-                shapes.roundedRectPath(ctx,
-                                       canvasWidth * 0.3, canvasHeight * 0.15,
-                                       canvasWidth * 0.6, canvasHeight * 0.9,
-                                       15);
-                ctx.fillStyle = "lightgray";
+                shapes.semicircle(ctx, x, bsHeight + 50, 60);
                 ctx.fill();
+                ctx.strokeStyle = "#030";
+                ctx.beginPath();
+                ctx.moveTo(x - 60, bsHeight + 50);
+                ctx.arc(x, bsHeight + 50, 60, 0, Math.PI, true);
+                ctx.stroke();
             },
+            buildingsBg: function (ctx) { // Only needs to paint the areas not covered by render.streetcar
+                row(0, bsHeight, "#942F37");
+                row(bsHeight, 10, "#333");
+                row(bsHeight + 10, 5, "#111");
+                row(bsHeight + 15, 170, "#888"); // Sidewalk
+                row(bsHeight + 185, 20, "#555"); // Curb
+                row(bsHeight + 205, 500, "#013"); // Street
+                // Bushes:
+                render.bush(ctx, canvasWidth * 0.65);
+                render.bush(ctx, canvasWidth * 0.4);
+                render.bush(ctx, canvasWidth * 0.9);
+            },
+            streetcar: (function () {
+                var scShape = function (ctx) {
+                    var radius = 25;
+                    var x = canvasWidth * 0.3;
+                    var y = canvasHeight * 0.15;
+                    var width = canvasWidth * 0.6;
+                    var height = canvasHeight * 0.9;
+                    ctx.beginPath();
+                    ctx.moveTo(x + width, y + height);
+                    ctx.lineTo(x + width, y + radius);
+                    ctx.quadraticCurveTo(x + width, y, x + width - radius, y);
+                    ctx.lineTo(x + radius, y);
+                    ctx.quadraticCurveTo(x, y, x, y + radius);
+                    ctx.lineTo(x, y + height);
+                    ctx.lineTo(0, canvasHeight);
+                    ctx.lineTo(0, 0);
+                    ctx.lineTo(canvasWidth, 0);
+                    ctx.lineTo(canvasWidth, canvasHeight);
+                };
+                return function (ctx) {
+                    scShape(ctx);
+                    ctx.fillStyle = "#604";
+                    ctx.fill();
+                    scShape(ctx);
+                    ctx.strokeStyle = "#402";
+                    ctx.stroke();
+                };
+            }()),
             triangle: function (ctx, pt0, pt1, pt2, color) {
                 ctx.beginPath();
                 ctx.moveTo(pt0.x, pt0.y);
@@ -1662,8 +1681,10 @@
                     var timeElapsed = now - (startTime || now);
                     var curP = gameSt.curPerson;
                     render.buildingsBg(ctx);
-                    render.streetcar(ctx);
-                    render.infoText(ctx);
+                    if (curP.animation !== "exitingOut") {
+                        render.streetcar(ctx);
+                        render.infoText(ctx);
+                    }
                     var fracTimeLeft = 1 - timeElapsed / timeGiven;
                     genericRender.timeLeftBar(ctx, fracTimeLeft);
                     if (curP.animation === "entering") {
@@ -1693,6 +1714,10 @@
                         }());
                     }
                     curP.chars.draw(ctx);
+                    if (curP.animation === "exitingOut") {
+                        render.streetcar(ctx);
+                        render.infoText(ctx);
+                    }
                     render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
                     if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
                         if (curP.animation === "exitingOut" && curP.chars.role !== "behemoth") {
