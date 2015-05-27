@@ -15,4 +15,5 @@
     <preference name="DisallowOverscroll" value="true"/>
     <icon src="res/icon.png" />
     <splash src="res/splashscreen.png" />
+    <preference name="permissions" value="none"/>
 </widget>
