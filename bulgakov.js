@@ -1094,6 +1094,7 @@
                  ].join("\n");
             var msgs = ['"They decapitated Kenny!"\n"You bastards!"',
                         "A doctor!\nSomeone call a doctor!",
+                        "A doctor!\nSomeone call a doctor!",
                         '"Daddy, why are they dead?"\n"Because, son, you failed"'];
             var lossMsg = function () { return randElem(msgs); };
             var firstTimePlaying = true;
@@ -1646,6 +1647,7 @@
             var kickOutLossMsgs =
                 ["You kicked a Muscovite out of\nthe streetcar!",
                  "I ain't no cat!",
+                 "How will I get to the pet store now?\n*gasp* I have an idea...",
                  "How will I get to the pet store now?\n*gasp* I have an idea..."
                  ];
             var letInLossMsgs =
