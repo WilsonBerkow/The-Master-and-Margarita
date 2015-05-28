@@ -238,8 +238,8 @@
             ctx.strokeStyle = "black"; // To minimize state changes, I'm doing this once, here, rather than using .save(),.restore(), bla bla bla and changing the state variables everywhere
         },
         timeLeftBar: function (ctx, fractionLeft) {
-            ctx.fillStyle = "#55b";
-            ctx.fillRect(0, 0, canvasWidth * fractionLeft, 10);
+            ctx.fillStyle = fractionLeft > 0.33 ? "#55b" : "#b00";
+            ctx.fillRect(0, 0, canvasWidth * fractionLeft, 15);
         },
         scriptText: function (ctx, x, y, alignment, size, text, font, reverse) { // TODO: USE IN TITLE FUNCTION IN MAINMENU
             ctx.lineWidth = 5;
@@ -1698,12 +1698,12 @@
                     var timeElapsed = now - (startTime || now);
                     var curP = gameSt.curPerson;
                     render.buildingsBg(ctx);
+                    var fracTimeLeft = 1 - timeElapsed / timeGiven;
                     if (curP.animation !== "exitingOut") {
                         render.streetcar(ctx);
                         render.infoText(ctx);
+                        genericRender.timeLeftBar(ctx, fracTimeLeft);
                     }
-                    var fracTimeLeft = 1 - timeElapsed / timeGiven;
-                    genericRender.timeLeftBar(ctx, fracTimeLeft);
                     if (curP.animation === "entering") {
                         curP.chars.setY(curP.fracDone * (enteringEndY - enteringStartY) + enteringStartY);
                         curP.fracDone = 1 - (1 - curP.fracDone) * 0.9; // Reduce dist to target by 10 percent each time
@@ -1734,6 +1734,7 @@
                     if (curP.animation === "exitingOut") {
                         render.streetcar(ctx);
                         render.infoText(ctx);
+                        genericRender.timeLeftBar(ctx, fracTimeLeft);
                     }
                     render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
                     if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
