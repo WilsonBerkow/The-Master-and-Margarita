@@ -1568,7 +1568,7 @@
                 ctx.fontWeight = "bold";
                 ctx.lineWidth = 8;
                 if (serious) {
-                    ctx.strokeStyle = "red";
+                    ctx.strokeStyle = "#b00";
                 } else {
                     ctx.strokeStyle = "navy";
                 }
@@ -1736,7 +1736,7 @@
                         render.infoText(ctx);
                         genericRender.timeLeftBar(ctx, fracTimeLeft);
                     }
-                    render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.3);
+                    render.pplLeft(ctx, peopleToHandle - gameSt.peopleHandled, fracTimeLeft < 0.33);
                     if ((curP.animation === "exitingIn" || curP.animation === "exitingOut") && curP.fracDone > 0.95) {
                         if (curP.animation === "exitingOut" && curP.chars.role !== "behemoth") {
                             return youLose(randElem(kickOutLossMsgs));
