@@ -1591,7 +1591,6 @@
                 },
                 skinClr: black,
                 clothesClr: black,
-                skinClr: black,
                 eyesClr: "orange",
                 eyesHeightFactor: 0.7,
                 role: "behemoth"
