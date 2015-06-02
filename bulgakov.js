@@ -1302,7 +1302,8 @@
              "he's on his way to the collonade",
              "to spy on Pilate and Yeshua!",
              "",
-             "Tap to shoot him down while you can!"
+             "Tap anywhere to shoot",
+             "him down while you can!"
              ].join("\n");
         var firstTimePlaying = true;
         var play = (function () {
