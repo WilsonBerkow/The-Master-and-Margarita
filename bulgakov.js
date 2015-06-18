@@ -1,3 +1,4 @@
+// (c) Wilson Berkow
 (function () {
     'use strict';
     var canvas = jQuery("#game")[0],
