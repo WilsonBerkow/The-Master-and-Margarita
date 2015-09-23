@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Early edition of this, primarily rushed for a demo -->
-<widget id="com.wilsonberkow.www" version="0.0.1">
+<widget id="com.wilsonberkow.margarita" version="0.0.1">
     <name>Margarita</name>
     <description>
         Thwart Woland in this game of The Master and Margarita!
