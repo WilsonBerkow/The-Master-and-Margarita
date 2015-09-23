@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Early edition of this, primarily rushed for a demo -->
-<widget id="com.wilsonberkow.margarita" version="0.0.1">
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:gap="http://phonegap.com/ns/1.0"
+        id="com.wilsonberkow.margarita"
+        version="1.0.0">
     <name>Margarita</name>
     <description>
         Thwart Woland in this game of The Master and Margarita!
@@ -10,10 +12,10 @@
     </author>
     <content src="index.html" />
     <access origin="*" />
-    <preference name="Fullscreen" value="true" />
-    <preference name="Orientation" value="landscape" />
+    <preference name="fullscreen" value="true" />
+    <preference name="orientation" value="portrait" />
     <preference name="DisallowOverscroll" value="true"/>
     <icon src="res/icon.png" />
-    <splash src="res/splashscreen.png" />
+    <gap:splash src="res/splashscreen.png" />
     <preference name="permissions" value="none"/>
 </widget>
