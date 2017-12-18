@@ -12,6 +12,7 @@
     </author>
     <content src="index.html" />
     <access origin="*" />
+    <preference name="phonegap-version" value="cli-6.5.0" />
     <preference name="fullscreen" value="true" />
     <preference name="orientation" value="portrait" />
     <preference name="DisallowOverscroll" value="true"/>
